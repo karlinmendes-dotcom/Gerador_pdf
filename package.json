@@ -22,6 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.17.4",
+    "framer-motion": "^13.3.0",
     "lucide-react": "^0.468.0",
     "mercadopago": "^3.6.1",
     "react": "^18.3.1",

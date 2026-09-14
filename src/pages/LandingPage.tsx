@@ -1,29 +1,49 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DocumentForm } from "@/components/DocumentForm";
+import { PaymentModal } from "@/components/PaymentModal";
 import { useStore } from "@/lib/store";
-import { DOC_TYPES, getDocType, generatePdf } from "@/lib/pdf-engine";
+import { DOC_TYPES, getDocType, getPrice, generatePdf } from "@/lib/pdf-engine";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
+};
 
 export default function LandingPage() {
   const nav = useNavigate();
   const addDocument = useStore((s) => s.addDocument);
 
   const [quickType, setQuickType] = useState<string | null>(null);
+  const [pendingData, setPendingData] = useState<Record<string, string> | null>(null);
+  const [payDocId, setPayDocId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  /** Quick generation straight from the landing page: form → pdf-engine → download. */
-  const handleQuickGenerate = async (data: Record<string, string>) => {
-    if (!quickType) return;
+  /** Paywall: preencheu de graça — cobra só no "Gerar e Baixar PDF Oficial". */
+  const handleQuickGenerate = (data: Record<string, string>) => {
+    setPendingData(data);
+    setQuickType(null);
+    setPayDocId("quick");
+  };
+
+  const handlePaymentConfirmed = async (paymentId: string) => {
+    if (!pendingData || !quickTypeRef(pendingData)) return;
     setGenerating(true);
     try {
-      const blob = await generatePdf(quickType, data);
+      const type = pendingData.__type as string;
+      const { __type, ...form } = pendingData;
+      const blob = await generatePdf(type, form);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${getDocType(quickType)?.name ?? "documento"}.pdf`;
+      a.download = `${getDocType(type)?.name ?? "documento"}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -31,152 +51,254 @@ export default function LandingPage() {
 
       addDocument({
         userId: useStore.getState().userId,
-        documentType: quickType,
-        title: `${getDocType(quickType)?.name ?? quickType} — ${new Date().toLocaleDateString("pt-BR")}`,
-        dataJson: JSON.stringify(data),
-        status: "draft",
+        documentType: type,
+        title: `${getDocType(type)?.name ?? type} — ${new Date().toLocaleDateString("pt-BR")}`,
+        dataJson: JSON.stringify(form),
+        status: "paid",
+        paymentId,
       });
     } finally {
       setGenerating(false);
-      setQuickType(null);
+      setPendingData(null);
     }
   };
 
+  // helper kept local to avoid stale closure over quickType
+  const quickTypeRef = (data: Record<string, string> | null) => data?.__type;
+
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📄</span>
-            <span className="text-xl font-bold tracking-tight">PDFForge Brasil</span>
+      {/* ─── Navbar ─────────────────────────────────────────────── */}
+      <motion.header
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-background/70 backdrop-blur-xl"
+      >
+        <div className="container mx-auto flex items-center justify-between px-4 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 text-lg shadow-lg shadow-purple-600/30">
+              📄
+            </div>
+            <div className="leading-tight">
+              <span className="block text-base font-bold tracking-tight">PDFForge Brasil</span>
+              <span className="block text-[11px] text-slate-400">Gerador de Documentos Express</span>
+            </div>
           </div>
           <Button onClick={() => nav("/app")} size="sm">Acessar Plataforma</Button>
         </div>
-      </header>
+      </motion.header>
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-              🚀 Motor único de formulários e PDF
-            </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
+      {/* ─── Hero ───────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden pt-32 pb-20 md:pt-44 md:pb-28">
+        <div className="grid-backdrop absolute inset-0" />
+        <motion.div
+          animate={{ opacity: [0.5, 0.9, 0.5], scale: [1, 1.08, 1] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-purple-600/20 blur-[120px]"
+        />
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="mx-auto max-w-4xl text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55 }}
+            >
+              <Badge variant="secondary" className="mb-6 border-purple-500/25 bg-purple-500/10 px-4 py-1.5 text-purple-300">
+                ⚡ Motor único de formulários e PDF
+              </Badge>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.08 }}
+              className="mb-6 text-4xl font-extrabold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl"
+            >
               Documentos Jurídicos
-              <span className="block text-primary">em Segundos</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              Gere contratos, recibos e declarações profissionais com IA.
-              Preencha o formulário e baixe o PDF na hora.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => setQuickType("compra-venda-veiculo")} className="text-lg px-8">
-                📝 Gerar Contrato Agora
+              <span className="text-gradient block pb-2">em Segundos</span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.16 }}
+              className="mx-auto mb-10 max-w-2xl text-base text-silver md:text-xl"
+            >
+              Preencha grátis, pague só na hora de baixar. Contratos, recibos e declarações
+              profissionais gerados por IA — direto do navegador.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.24 }}
+              className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+            >
+              <Button size="lg" onClick={() => setQuickType("compra-venda-veiculo")} className="w-full sm:w-auto">
+                📝 Gerar Documento Grátis
               </Button>
-              <Button size="lg" variant="outline" onClick={() => nav("/app")} className="text-lg px-8">
-                Abrir Dashboard
+              <Button size="lg" variant="outline" onClick={() => nav("/app")} className="w-full sm:w-auto">
+                Abrir Dashboard →
               </Button>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              ⚡ Geração instantânea • 🤖 IA para preenchimento • 📄 PDF profissional
-            </p>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6 text-xs text-slate-500"
+            >
+              Grátis para preencher • Pix R$ 5–9 só no download • PDF pronto em segundos
+            </motion.p>
           </div>
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">Tudo que você precisa</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* ─── Features ───────────────────────────────────────────── */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <motion.h2 {...fadeUp} className="mb-12 text-center text-3xl font-bold md:text-4xl">
+          Tudo que você precisa, <span className="text-gradient">nada a mais</span>
+        </motion.h2>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {[
-            { icon: "🤖", title: "IA que Entende", desc: "Descreva em texto livre. Gemini ou Llama estruturam os dados." },
-            { icon: "📋", title: "Formulários Dinâmicos", desc: "Motor configurável via JSON. Novos documentos sem código." },
-            { icon: "📄", title: "PDF Profissional", desc: "Geração instantânea com pdfme, direto no navegador." },
-            { icon: "📒", title: "Livro de Recibos", desc: "Acompanhe parcelas e comprovantes Pix por contrato." },
-            { icon: "📊", title: "Dashboard", desc: "Histórico completo e download a qualquer momento." },
-            { icon: "🔐", title: "Dados no Convex", desc: "Metadados e comprovantes salvos no banco Convex." },
+            { icon: "🤖", title: "IA que Entende", desc: "Descreva em texto livre — Gemini ou Llama estruturam os dados do documento." },
+            { icon: "📋", title: "Formulários Dinâmicos", desc: "Motor configurável via JSON: novos documentos sem escrever código." },
+            { icon: "📄", title: "PDF Profissional", desc: "Renderização instantânea com pdfme, 100% no seu navegador." },
+            { icon: "📒", title: "Livro de Recibos", desc: "Parcelas, comprovantes Pix e progresso de quitação por contrato." },
+            { icon: "📊", title: "Dashboard Completo", desc: "Histórico, status e download a qualquer momento, em qualquer tela." },
+            { icon: "🔐", title: "Dados no Convex", desc: "Metadados e comprovantes salvos no banco em tempo real." },
           ].map((f, i) => (
-            <Card key={i} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="text-3xl mb-1">{f.icon}</div>
-                <CardTitle className="text-lg">{f.title}</CardTitle>
-              </CardHeader>
-              <CardContent><CardDescription>{f.desc}</CardDescription></CardContent>
-            </Card>
+            <motion.div key={i} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.07 }}>
+              <Card className="group h-full transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-500/40 hover:shadow-[0_0_36px_-8px_rgba(139,92,246,0.45)]">
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] text-2xl ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
+                    {f.icon}
+                  </div>
+                  <CardTitle className="text-lg">{f.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>{f.desc}</CardDescription>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      <section id="como-funciona" className="bg-muted/50 py-20">
+      {/* ─── Como funciona ──────────────────────────────────────── */}
+      <section className="relative py-16 md:py-24">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Como Funciona</h2>
-          <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <motion.h2 {...fadeUp} className="mb-12 text-center text-3xl font-bold md:text-4xl">
+            Como funciona
+          </motion.h2>
+          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-8 md:grid-cols-3">
             {[
-              { icon: "🎯", title: "1. Escolha o documento", desc: "Contrato, recibo ou declaração." },
-              { icon: "✨", title: "2. Preencha ou use a IA", desc: "Manual ou por texto livre." },
-              { icon: "📥", title: "3. Baixe o PDF", desc: "Gerado na hora, direto do navegador." },
+              { icon: "🎯", title: "1. Escolha e preencha", desc: "Grátis, sem cadastro para testar." },
+              { icon: "✨", title: "2. IA ou manual", desc: "Texto livre estruturado por IA ou digitação." },
+              { icon: "⚡", title: "3. Pague e baixe", desc: "Pix R$ 5–9 no momento do download." },
             ].map((item, i) => (
-              <div key={i} className="text-center">
-                <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+              <motion.div key={i} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.1 }} className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 text-2xl shadow-lg shadow-purple-600/30">
                   {item.icon}
                 </div>
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-muted-foreground">{item.desc}</p>
-              </div>
+                <h3 className="mb-2 text-lg font-semibold">{item.title}</h3>
+                <p className="text-sm text-slate-400">{item.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-4">Documentos Disponíveis</h2>
-        <p className="text-center text-muted-foreground mb-12">Motor extensível — novos tipos via schema JSON.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {DOC_TYPES.map((doc) => (
-            <Card key={doc.id} className="text-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setQuickType(doc.id)}>
-              <CardHeader>
-                <div className="text-5xl mb-2">{doc.icon}</div>
-                <CardTitle className="text-base">{doc.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>{doc.description}</CardDescription>
-                <div className="mt-3">
-                  <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">{doc.category}</span>
-                </div>
-              </CardContent>
-            </Card>
+      {/* ─── Documentos ─────────────────────────────────────────── */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <motion.h2 {...fadeUp} className="mb-4 text-center text-3xl font-bold md:text-4xl">
+          Documentos disponíveis
+        </motion.h2>
+        <motion.p {...fadeUp} className="mb-12 text-center text-slate-400">
+          Motor extensível — novos tipos entram via schema JSON.
+        </motion.p>
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
+          {DOC_TYPES.map((doc, i) => (
+            <motion.div key={doc.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.07 }}>
+              <Card
+                className="group h-full cursor-pointer text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-500/40 hover:shadow-[0_0_36px_-8px_rgba(34,211,238,0.4)]"
+                onClick={() => setQuickType(doc.id)}
+              >
+                <CardHeader>
+                  <div className="mb-2 text-5xl transition-transform duration-300 group-hover:scale-110">{doc.icon}</div>
+                  <CardTitle className="text-base">{doc.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-xs">{doc.description}</CardDescription>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">{doc.category}</Badge>
+                    <Badge variant="success" className="text-[10px]">a partir de R$ {getPrice(doc.id).toFixed(2).replace(".", ",")}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-20">
-        <Card className="max-w-2xl mx-auto text-center p-8 bg-primary text-primary-foreground">
-          <CardHeader>
-            <CardTitle className="text-2xl text-primary-foreground">Pronto para gerar?</CardTitle>
-            <CardDescription className="text-primary-foreground/80">É rápido, direto e sem complicação.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button size="lg" variant="secondary" onClick={() => setQuickType("compra-venda-veiculo")} className="text-lg px-8">
-              🚀 Começar Agora
+      {/* ─── CTA final ──────────────────────────────────────────── */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <motion.div {...fadeUp}>
+          <Card className="border-gradient mx-auto max-w-2xl overflow-hidden p-8 text-center md:p-12">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-transparent to-cyan-500/10" />
+            <h2 className="relative mb-3 text-2xl font-bold md:text-3xl">
+              Pronto para forjar seu <span className="text-gradient">primeiro PDF?</span>
+            </h2>
+            <p className="relative mb-8 text-sm text-slate-400 md:text-base">
+              Preenchimento gratuito. Você só paga quando baixar o documento oficial.
+            </p>
+            <Button size="lg" onClick={() => setQuickType("compra-venda-veiculo")} className="relative px-10">
+              🚀 Começar Grátis
             </Button>
-          </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
       </section>
 
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+      <footer className="border-t border-white/5 py-8">
+        <div className="container mx-auto px-4 text-center text-xs text-slate-500">
           © 2026 PDFForge Brasil — React + Convex + pdfme + Vercel
         </div>
       </footer>
 
-      {/* Quick generation dialog: form feeds pdf-engine directly */}
-      <Dialog open={!!quickType} onOpenChange={() => setQuickType(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{getDocType(quickType ?? "")?.name ?? "Gerar Documento"}</DialogTitle>
-            <DialogDescription>Preencha os dados — o PDF é gerado na hora.</DialogDescription>
-          </DialogHeader>
-          <DocumentForm documentType={quickType ?? ""} onSubmit={handleQuickGenerate} isLoading={generating} />
-        </DialogContent>
-      </Dialog>
+      {/* ─── Quick generate dialog ──────────────────────────────── */}
+      <AnimatePresence>
+        <Dialog open={!!quickType} onOpenChange={(o) => !o && setQuickType(null)}>
+          <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto border-white/10 bg-[#0d1220] sm:rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span className="text-2xl">{getDocType(quickType ?? "")?.icon}</span>
+                {getDocType(quickType ?? "")?.name}
+              </DialogTitle>
+              <DialogDescription>
+                Preencha grátis — o Pix é solicitado apenas no download do PDF oficial.
+              </DialogDescription>
+            </DialogHeader>
+            <DocumentForm
+              documentType={quickType ?? ""}
+              onSubmit={handleQuickGenerate}
+              isLoading={generating}
+            />
+          </DialogContent>
+        </Dialog>
+      </AnimatePresence>
+
+      {/* ─── Paywall (PIX) ──────────────────────────────────────── */}
+      {payDocId && pendingData && (
+        <PaymentModal
+          open={!!payDocId}
+          onOpenChange={(o) => { if (!o) setPayDocId(null); }}
+          documentId={payDocId}
+          amount={getPrice(pendingData.__type)}
+          title={getDocType(pendingData.__type)?.name ?? "Documento"}
+          onPaymentConfirmed={handlePaymentConfirmed}
+        />
+      )}
     </div>
   );
 }

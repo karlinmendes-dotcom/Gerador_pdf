@@ -21,6 +21,17 @@ export function getDocType(id: string): DocType | undefined {
   return DOC_TYPES.find((d) => d.id === id);
 }
 
+/** Preço por documento em BRL — paywall acionado apenas no download. */
+export const PRICES: Record<string, number> = {
+  "compra-venda-veiculo": 9.9,
+  "recibo-pagamento": 5.0,
+  "declaracao-residencia": 5.0,
+};
+
+export function getPrice(id: string): number {
+  return PRICES[id] ?? 5.0;
+}
+
 // ─── Form fields per document type ────────────────────────────────────
 
 export interface FieldDef {

@@ -11,15 +11,17 @@ interface PaymentModalProps {
   onOpenChange: (open: boolean) => void;
   documentId: string;
   amount: number;
+  title?: string;
   onPaymentConfirmed: (paymentId: string) => void;
 }
 
 type Flow = "idle" | "creating" | "waiting" | "approved" | "error";
 
-export function PaymentModal({ open, onOpenChange, documentId, amount, onPaymentConfirmed }: PaymentModalProps) {
+export function PaymentModal({ open, onOpenChange, documentId, amount, title: titleProp, onPaymentConfirmed }: PaymentModalProps) {
   const { getDocument, updateDocument } = useStore();
   const doc = getDocument(documentId);
   const docType = doc ? getDocType(doc.documentType) : undefined;
+  const title = titleProp ?? doc?.title ?? docType?.name ?? "Documento";
 
   const [flow, setFlow] = useState<Flow>("idle");
   const [pix, setPix] = useState<PixCheckout | null>(null);
@@ -33,9 +35,9 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, onPayment
     setError("");
     try {
       const checkout = await createPixCheckout({
-        documentId: doc._id,
+        documentId: doc?._id ?? documentId,
         amount,
-        title: docType?.name ?? doc.title,
+        title,
       });
       setPix(checkout);
       updateDocument(doc._id, { paymentId: String(checkout.paymentId) });
@@ -54,7 +56,9 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, onPayment
       checkPaymentStatus(pix.paymentId)
         .then((status) => {
           if (status === "approved") {
-            updateDocument(doc?._id ?? "", { status: "paid", paymentId: String(pix.paymentId) });
+            if (doc) {
+              updateDocument(doc._id, { status: "paid", paymentId: String(pix.paymentId) });
+            }
             setFlow("approved");
             onPaymentConfirmed(String(pix.paymentId));
           } else if (status === "rejected" || status === "cancelled") {
@@ -103,7 +107,7 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, onPayment
         <DialogHeader>
           <DialogTitle>Pagamento via PIX</DialogTitle>
           <DialogDescription>
-            {docType?.name ?? doc?.title} — R$ {amount.toFixed(2)}
+            {title} — R$ {amount.toFixed(2).replace(".", ",")}
           </DialogDescription>
         </DialogHeader>
 
