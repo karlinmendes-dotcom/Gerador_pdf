@@ -2,6 +2,7 @@ import veiculo from "../../schemas/compra-venda-veiculo.json";
 import recibo from "../../schemas/recibo-pagamento.json";
 import residencia from "../../schemas/declaracao-residencia.json";
 import aluguel from "../../schemas/contrato-aluguel-simples.json";
+import curriculo from "../../schemas/curriculo-profissional.json";
 
 // ─── Tipos ────────────────────────────────────────────────────────────
 
@@ -39,9 +40,10 @@ const META: Record<string, { icon: string; category: string }> = {
   "recibo-pagamento": { icon: "💰", category: "Financeiro" },
   "declaracao-residencia": { icon: "🏠", category: "Pessoal" },
   "contrato-aluguel-simples": { icon: "🔑", category: "Imóveis" },
+  "curriculo-profissional": { icon: "💼", category: "Carreira" },
 };
 
-/** Campos renderizados em largura total (endereços, descrições). */
+/** Campos renderizados em largura total (endereços, descrições, textos longos). */
 const FULL_WIDTH_KEYS = new Set([
   "vendedor_endereco",
   "comprador_endereco",
@@ -50,10 +52,21 @@ const FULL_WIDTH_KEYS = new Set([
   "imovel_endereco",
   "referente_a",
   "parcelamento_detalhe",
+  "resumo_profissional",
+  "exp1_descricao",
+  "exp2_descricao",
+  "habilidades",
+  "idiomas",
 ]);
 
 /** Campos que renderizam como textarea. */
-const LONG_KEYS = new Set(["referente_a", "parcelamento_detalhe"]);
+const LONG_KEYS = new Set([
+  "referente_a",
+  "parcelamento_detalhe",
+  "resumo_profissional",
+  "exp1_descricao",
+  "exp2_descricao",
+]);
 
 // ─── Conversão JSON Schema → FieldDefs ────────────────────────────────
 
@@ -111,6 +124,7 @@ export const DOCUMENT_SCHEMAS: Record<string, DocumentSchema> = {
   "recibo-pagamento": build("recibo-pagamento", recibo as RawSchema),
   "declaracao-residencia": build("declaracao-residencia", residencia as RawSchema),
   "contrato-aluguel-simples": build("contrato-aluguel-simples", aluguel as RawSchema),
+  "curriculo-profissional": build("curriculo-profissional", curriculo as RawSchema),
 };
 
 export const DOC_IDS = Object.keys(DOCUMENT_SCHEMAS);

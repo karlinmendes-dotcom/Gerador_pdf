@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "curriculo-profissional",
+  "title": "Currículo Profissional",
+  "description": "Currículo elegante em 1 página, pronto para enviar em processos seletivos.",
+  "type": "object",
+  "properties": {
+    "nome_completo": { "type": "string", "title": "Nome Completo", "minLength": 3 },
+    "cargo_objetivo": { "type": "string", "title": "Cargo / Objetivo", "placeholder": "Ex.: Analista de Marketing Digital" },
+    "email": { "type": "string", "title": "E-mail", "placeholder": "voce@email.com" },
+    "telefone": { "type": "string", "title": "Telefone", "placeholder": "(11) 99999-9999" },
+    "cidade_uf": { "type": "string", "title": "Cidade / UF", "placeholder": "São Paulo, SP" },
+    "linkedin": { "type": "string", "title": "LinkedIn / Portfólio", "placeholder": "linkedin.com/in/seu-perfil" },
+    "resumo_profissional": { "type": "string", "title": "Resumo Profissional", "description": "2 a 4 linhas sobre sua trajetória e principais forças.", "minLength": 10 },
+    "exp1_cargo": { "type": "string", "title": "Experiência 1 — Cargo" },
+    "exp1_empresa": { "type": "string", "title": "Experiência 1 — Empresa" },
+    "exp1_periodo": { "type": "string", "title": "Experiência 1 — Período", "placeholder": "Mar 2022 — Atual" },
+    "exp1_descricao": { "type": "string", "title": "Experiência 1 — Atividades e Resultados", "description": "Destaque conquistas com números sempre que possível." },
+    "exp2_cargo": { "type": "string", "title": "Experiência 2 — Cargo" },
+    "exp2_empresa": { "type": "string", "title": "Experiência 2 — Empresa" },
+    "exp2_periodo": { "type": "string", "title": "Experiência 2 — Período", "placeholder": "Jan 2020 — Fev 2022" },
+    "exp2_descricao": { "type": "string", "title": "Experiência 2 — Atividades e Resultados" },
+    "formacao_curso": { "type": "string", "title": "Formação — Curso" },
+    "formacao_instituicao": { "type": "string", "title": "Formação — Instituição" },
+    "formacao_periodo": { "type": "string", "title": "Formação — Período", "placeholder": "2016 — 2020" },
+    "habilidades": { "type": "string", "title": "Habilidades", "description": "Separe por vírgula: Excel avançado, Gestão de tráfego, SEO…", "minLength": 3 },
+    "idiomas": { "type": "string", "title": "Idiomas", "placeholder": "Inglês — Avançado · Espanhol — Intermediário" }
+  },
+  "required": ["nome_completo", "cargo_objetivo", "email", "telefone", "cidade_uf", "resumo_profissional", "exp1_cargo", "exp1_empresa", "exp1_periodo", "exp1_descricao", "formacao_curso", "formacao_instituicao", "habilidades"]
+}
