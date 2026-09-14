@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { getDocType } from "@/lib/pdf-engine";
 import { createPixCheckout, checkPaymentStatus, MOCK_QR_DATA_URI, type PixCheckout } from "@/lib/payments";
 
@@ -28,6 +29,7 @@ export function PaymentModal({
   onPaymentConfirmed,
 }: PaymentModalProps) {
   const { getDocument, updateDocument } = useStore();
+  const { user } = useAuth();
   const doc = getDocument(documentId);
   const docType = doc ? getDocType(doc.documentType) : undefined;
   const title = titleProp ?? doc?.title ?? docType?.name ?? "Documento";
@@ -46,6 +48,7 @@ export function PaymentModal({
         documentId: doc?._id ?? documentId,
         amount,
         title,
+        payerEmail: user?.email,
       });
       setPix(checkout);
       if (doc) updateDocument(doc._id, { paymentId: String(checkout.paymentId) });
@@ -80,8 +83,7 @@ export function PaymentModal({
             });
           }
         })
-        .catch(() => setPolls((p) => p + 1));
-    }, 2500);
+        .catch(() => setPolls((p) => p + 1));      }, 3000);
 
     return () => clearTimeout(timeout);
   }, [flow, pix, polls, doc, updateDocument, onPaymentConfirmed]);

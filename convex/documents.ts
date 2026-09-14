@@ -34,6 +34,7 @@ export const update = mutation({
     title: v.optional(v.string()),
     pdfUrl: v.optional(v.string()),
     status: v.optional(v.union(v.literal("draft"), v.literal("paid"))),
+    paymentId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -42,6 +43,7 @@ export const update = mutation({
     if (updates.title !== undefined) fields.title = updates.title;
     if (updates.pdfUrl !== undefined) fields.pdfUrl = updates.pdfUrl;
     if (updates.status !== undefined) fields.status = updates.status;
+    if (updates.paymentId !== undefined) fields.paymentId = updates.paymentId;
     await ctx.db.patch(id, fields);
   },
 });

@@ -42,6 +42,8 @@ export async function createPixCheckout(params: {
   documentId: string;
   amount: number;
   title: string;
+  /** E-mail do usuário logado — enviado como payer ao Mercado Pago. */
+  payerEmail?: string;
 }): Promise<PixCheckout> {
   try {
     const res = await fetch("/api/checkout", {

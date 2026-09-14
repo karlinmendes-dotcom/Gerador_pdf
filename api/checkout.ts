@@ -16,10 +16,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "MERCADOPAGO_ACCESS_TOKEN não configurado" });
     }
 
-    const { documentId, amount, title } = req.body as {
+    const { documentId, amount, title, payerEmail } = req.body as {
       documentId?: string;
       amount?: number;
       title?: string;
+      payerEmail?: string;
     };
 
     if (!documentId || !amount || !title) {
@@ -30,15 +31,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const client = new MercadoPagoConfig({ accessToken });
     const payment = new Payment(client);
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pdfforge-brasil.vercel.app";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gerador-pdf-peach.vercel.app";
 
     const result = await payment.create({
       body: {
         transaction_amount: Number(amount.toFixed(2)),
-        description: `PDFForge Brasil — ${title}`.slice(0, 256),
+        description: `Emissão de Documento - PDFForge Brasil`.slice(0, 256),
+        statement_descriptor: "PDFFORGE",
         payment_method_id: "pix",
         external_reference: documentId,
         notification_url: `${appUrl}/api/webhooks/mercadopago`,
+        payer: {
+          email: payerEmail && payerEmail.includes("@")
+            ? payerEmail
+            : "pagador@pdfforgebrasil.com.br",
+        },
       },
     });
 
@@ -48,14 +55,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ticket_url?: string;
     }
     const poi = result.point_of_interaction as { transaction_data?: PixTransactionData } | undefined;
-    const txData = poi?.transaction_data ?? {};
 
     return res.status(200).json({
       paymentId: result.id,
       status: result.status,
-      qrCodeBase64: txData.qr_code_base64,
-      qrCode: txData.qr_code, // "Pix Copia e Cola"
-      ticketUrl: txData.ticket_url,
+      qrCodeBase64: poi?.transaction_data?.qr_code_base64,
+      qrCode: poi?.transaction_data?.qr_code, // "Pix Copia e Cola"
+      ticketUrl: poi?.transaction_data?.ticket_url,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao criar cobrança PIX";

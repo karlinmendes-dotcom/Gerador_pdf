@@ -55,16 +55,26 @@ const CONVEX_URL =
   "";
 
 /** Fire-and-forget persistence into Convex when the backend is connected. */
-async function convexSync(kind: "documents" | "receipts", action: string, payload: unknown) {
-  if (!CONVEX_URL) return; // offline/draft mode: localStorage only
+async function convexSync(
+  kind: "documents" | "receipts",
+  action: string,
+  payload: unknown
+): Promise<{ status?: string; value?: unknown } | null> {
+  if (!CONVEX_URL) return null; // offline/draft mode: localStorage only
   try {
-    await fetch(`${CONVEX_URL}/api/mutation`, {
+    const res = await fetch(`${CONVEX_URL}/api/mutation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path: `${kind}:${action}`, args: payload }),
     });
+    const body = (await res.json().catch(() => null)) as {
+      status?: string;
+      value?: unknown;
+    } | null;
+    return body?.status === "success" ? body : null;
   } catch {
     // Convex unreachable — local state remains source of truth in draft mode
+    return null;
   }
 }
 
@@ -106,6 +116,17 @@ export const useStore = create<StoreState>((set, get) => ({
       title: created.title,
       dataJson: created.dataJson,
       status: created.status,
+    }).then((res) => {
+      // Stash the Convex ID so the PIX webhook can locate this document later.
+      if (res?.value && typeof res.value === "string" && res.value.length > 10) {
+        set((s) => {
+          const documents = s.documents.map((d) =>
+            d._id === created._id ? { ...d, _id: res.value as string } : d
+          );
+          save("pdfforge:documents", documents);
+          return { documents };
+        });
+      }
     });
     return created;
   },

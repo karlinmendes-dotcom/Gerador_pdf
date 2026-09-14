@@ -19,11 +19,13 @@ export default defineSchema({
     dataJson: v.string(),
     pdfUrl: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("paid")),
+    paymentId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_and_type", ["userId", "documentType"]),
+    .index("by_userId_and_type", ["userId", "documentType"])
+    .index("by_paymentId", ["paymentId"]),
 
   receipts: defineTable({
     documentId: v.id("documents"),
