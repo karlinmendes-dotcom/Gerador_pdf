@@ -27,6 +27,29 @@ export default defineSchema({
     .index("by_userId_and_type", ["userId", "documentType"])
     .index("by_paymentId", ["paymentId"]),
 
+  /** Galeria hospedada gerada pelo Módulo Gerador de QR Code. */
+  qrGalleries: defineTable({
+    /** Chave curta usada na URL pública /g/:key. */
+    key: v.string(),
+    userId: v.optional(v.id("users")),
+    title: v.string(),
+    /** IDs de _storage do Convex; vazio no modo draft (data URLs no cliente). */
+    fileIds: v.array(v.id("_storage")),
+    /** Metadados por item: nome, mime e tamanho. */
+    items: v.array(
+      v.object({
+        fileId: v.string(),
+        name: v.string(),
+        mime: v.string(),
+        size: v.number(),
+      })
+    ),
+    views: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_userId", ["userId"]),
+
   receipts: defineTable({
     documentId: v.id("documents"),
     userId: v.id("users"),
@@ -40,5 +63,6 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_documentId", ["documentId"])
-    .index("by_documentId_and_number", ["documentId", "installmentNumber"]),
+    .index("by_documentId_and_number", ["documentId", "installmentNumber"])
+    .index("by_userId", ["userId"]),
 });

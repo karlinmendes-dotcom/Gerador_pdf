@@ -27,6 +27,7 @@ export const PRICES: Record<string, number> = {
   "recibo-pagamento": 5.0,
   "declaracao-residencia": 5.0,
   "contrato-aluguel-simples": 9.9,
+  "curriculo-profissional": 7.9,
 };
 
 export function getPrice(id: string): number {
@@ -221,6 +222,43 @@ A garantia contratada é: ${d.forma_garantia ?? "Sem garantia"}${d.valor_caucao 
 
 CLÁUSULA 6ª — DAS OBRIGAÇÕES
 O(A) LOCATÁRIO(A) obriga-se a usar o imóvel conforme a finalidade pactuada, conservá-lo e pagar pontualmente os encargos; o(A) LOCADOR(A) garante o uso pacífico do imóvel durante a locação.`,
+
+  "curriculo-profissional": (d) => {
+    const skills = String(d.habilidades ?? "")
+      .split(/[,;]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const bullet = (label: string, value?: string) => (value ? `${label}: ${value}` : null);
+    const exp2Lines = [
+      bullet("Cargo", d.exp2_cargo),
+      bullet("Empresa", d.exp2_empresa),
+      bullet("Período", d.exp2_periodo),
+      d.exp2_descricao ? d.exp2_descricao : null,
+    ].filter(Boolean) as string[];
+
+    return `CURRÍCULO PROFISSIONAL
+
+${(d.nome_completo ?? "").toUpperCase()}
+${d.cargo_objetivo ?? ""}
+
+CONTATO
+${[d.telefone, d.email, d.cidade_uf, d.linkedin].filter(Boolean).join("  ·  ")}
+
+RESUMO PROFISSIONAL
+${d.resumo_profissional ?? ""}
+
+EXPERIÊNCIA PROFISSIONAL
+${d.exp1_cargo ?? ""} — ${d.exp1_empresa ?? ""} (${d.exp1_periodo ?? ""})
+${d.exp1_descricao ?? ""}
+${exp2Lines.length > 0 ? `\n${d.exp2_cargo ?? ""} — ${d.exp2_empresa ?? ""} (${d.exp2_periodo ?? ""})\n${exp2Lines.slice(3).join("\n")}\n` : ""}FORMAÇÃO ACADÊMICA
+${d.formacao_curso ?? ""} — ${d.formacao_instituicao ?? ""} (${d.formacao_periodo ?? ""})
+
+HABILIDADES
+${skills.map((s) => `• ${s}`).join("\n")}
+
+IDIOMAS
+${d.idiomas ?? "Português — Nativo"}`;
+  },
 };
 
 // ─── Geração ──────────────────────────────────────────────────────────
@@ -236,6 +274,8 @@ function signersFor(id: string, d: Record<string, string>): string[] {
       return [`${d.recebedor_nome ?? "Recebedor(a)"} — Recebedor(a)`];
     case "declaracao-residencia":
       return [`${d.declarante_nome ?? "Declarante"} — Declarante`];
+    case "curriculo-profissional":
+      return [`${d.nome_completo ?? "Candidato(a)"} — Assinatura digital`];
     default:
       return ["Assinatura do(a) declarante"];
   }
@@ -250,10 +290,11 @@ export async function generatePdf(documentType: string, data: Record<string, str
   const local =
     data.local_venda ??
     data.cidade ??
+    data.cidade_uf ??
     (data.endereco_cidade && data.endereco_estado
       ? `${data.endereco_cidade}/${data.endereco_estado}`
       : undefined);
-  const date = data.data_venda ?? data.data ?? data.data_assinatura;
+  const date = data.data_venda ?? data.data ?? data.data_assinatura ?? new Date().toLocaleDateString("pt-BR");
 
   const template = {
     basePdf: { width: A4.width, height: A4.height, padding: A4.padding },

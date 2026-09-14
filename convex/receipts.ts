@@ -1,6 +1,16 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+export const listByUser = query({
+  args: { userId: v.id("users") },
+  handler: (ctx, args) =>
+    ctx.db
+      .query("receipts")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .collect(),
+});
+
 export const listByDocument = query({
   args: { documentId: v.id("documents") },
   handler: (ctx, args) =>

@@ -58,12 +58,20 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
 
   return (
     <Dialog open={open} onOpenChange={(o) => onOpenChange(o)}>
-      <DialogContent className="max-w-md border-white/10 bg-[#0d1220] sm:rounded-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-md overflow-hidden border-white/10 bg-zinc-900/80 shadow-2xl shadow-purple-950/40 backdrop-blur-2xl sm:rounded-2xl">
+        {/* Luz de gradiente no topo do modal */}
+        <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-gradient-to-r from-purple-600/30 via-indigo-600/20 to-cyan-500/20 blur-3xl" />
+
+        <DialogHeader className="relative">
           <DialogTitle className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 text-lg shadow-lg shadow-purple-600/30">
+            <motion.span
+              initial={{ rotate: -8, scale: 0.85 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ type: "spring", damping: 12, stiffness: 200 }}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 via-indigo-500 to-pink-500 text-lg shadow-lg shadow-purple-600/40"
+            >
               📄
-            </span>
+            </motion.span>
             {mode === "signin" ? "Entrar na conta" : "Criar conta grátis"}
           </DialogTitle>
           <DialogDescription>
@@ -72,7 +80,7 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+        <div className="relative grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
           {(["signin", "signup"] as Mode[]).map((m) => (
             <button
               key={m}
@@ -173,13 +181,15 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
             )}
           </Button>
 
-          <button
+          <motion.button
             type="button"
             onClick={fillDemo}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             className="w-full text-center text-[11px] text-slate-500 transition-colors hover:text-slate-300"
           >
             Preencher dados de demonstração
-          </button>
+          </motion.button>
         </form>
 
         <div className="flex items-center justify-center gap-2 border-t border-white/5 pt-3">

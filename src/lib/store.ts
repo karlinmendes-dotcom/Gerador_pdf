@@ -32,9 +32,15 @@ interface StoreState {
   documents: Document[];
   receipts: Receipt[];
   userId: string;
+  /** true enquanto os dados do usuário estão sendo hidratados do Convex. */
+  hydrating: boolean;
+  /** true quando a hidratação do Convex falhou/está offline (modo draft). */
+  offline: boolean;
 
   /** Liga a store ao usuário autenticado (chamado por lib/auth.ts). */
   syncUser: (id: string, email: string) => void;
+  /** Carrega documentos/recibos reais do Convex para o usuário logado. */
+  hydrateFromConvex: (userId: string) => Promise<void>;
   addDocument: (doc: Omit<Document, "_id" | "createdAt" | "updatedAt">) => Document;
   updateDocument: (id: string, updates: Partial<Document>) => void;
   removeDocument: (id: string) => void;
@@ -95,12 +101,85 @@ function save(key: string, value: unknown) {
   }
 }
 
+function documentFromConvex(row: {
+  _id: string;
+  userId: string;
+  documentType: string;
+  title: string;
+  dataJson: string;
+  pdfUrl?: string;
+  status: "draft" | "paid";
+  paymentId?: string;
+  createdAt: number;
+  updatedAt: number;
+}): Document {
+  return { ...row };
+}
+
+function receiptFromConvex(row: {
+  _id: string;
+  documentId: string;
+  installmentNumber: number;
+  amount: number;
+  dueDate: string;
+  paidDate?: string;
+  status: "pending" | "paid" | "overdue";
+  createdAt: number;
+  updatedAt: number;
+}): Receipt {
+  return { ...row };
+}
+
 export const useStore = create<StoreState>((set, get) => ({
   documents: load<Document[]>("pdfforge:documents", []),
   receipts: load<Receipt[]>("pdfforge:receipts", []),
   userId: LOCAL_USER,
+  hydrating: false,
+  offline: false,
 
   syncUser: (id, _email) => set({ userId: id }),
+
+  /**
+   * Hidrata documentos e recibos reais do Convex para o usuário autenticado.
+   * Em caso de falha (rede/sem backend), mantém o estado local e sinaliza
+   * `offline` — o dashboard segue 100% utilizável em modo draft.
+   */
+  hydrateFromConvex: async (userId: string) => {
+    if (!CONVEX_URL || !userId || userId === LOCAL_USER) return;
+    set({ hydrating: true });
+    try {
+      const [docsRes, receiptsRes] = await Promise.all([
+        fetch(`${CONVEX_URL}/api/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: "documents:listByUser", args: { userId } }),
+        }),
+        fetch(`${CONVEX_URL}/api/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: "receipts:listByUser", args: { userId } }),
+        }),
+      ]);
+      const docsBody = (await docsRes.json().catch(() => null)) as {
+        status?: string;
+        value?: unknown;
+      } | null;
+      const recBody = (await receiptsRes.json().catch(() => null)) as {
+        status?: string;
+        value?: unknown;
+      } | null;
+      if (docsBody?.status !== "success" || recBody?.status !== "success") {
+        throw new Error("convex_query_failed");
+      }
+      const documents = (Array.isArray(docsBody.value) ? docsBody.value : []).map(documentFromConvex);
+      const receipts = (Array.isArray(recBody.value) ? recBody.value : []).map(receiptFromConvex);
+      set({ documents, receipts, userId, hydrating: false, offline: false });
+      save("pdfforge:documents", documents);
+      save("pdfforge:receipts", receipts);
+    } catch {
+      set({ hydrating: false, offline: true });
+    }
+  },
 
   addDocument: (doc) => {
     const now = Date.now();
@@ -152,7 +231,9 @@ export const useStore = create<StoreState>((set, get) => ({
   getDocument: (id) => get().documents.find((d) => d._id === id),
 
   getUserDocuments: () =>
-    get().documents.filter((d) => d.userId === get().userId).sort((a, b) => b.createdAt - a.createdAt),
+    get()
+      .documents.filter((d) => d.userId === get().userId)
+      .sort((a, b) => b.createdAt - a.createdAt),
 
   addReceipts: (list) => {
     const now = Date.now();

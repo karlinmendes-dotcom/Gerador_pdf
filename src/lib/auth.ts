@@ -112,6 +112,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
       saveSession(user);
       set({ user });
       useStore.getState().syncUser(user.id, user.email);
+      void useStore.getState().hydrateFromConvex(user.id);
       return user;
     }
 
@@ -125,6 +126,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
     saveSession(user);
     set({ user });
     useStore.getState().syncUser(user.id, user.email);
+    void useStore.getState().hydrateFromConvex(user.id);
     return user;
   },
 
@@ -146,6 +148,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
       saveSession(user);
       set({ user });
       useStore.getState().syncUser(user.id, user.email);
+      void useStore.getState().hydrateFromConvex(user.id);
       return user;
     }
 
@@ -165,6 +168,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
     saveSession(user);
     set({ user });
     useStore.getState().syncUser(user.id, user.email);
+    void useStore.getState().hydrateFromConvex(user.id);
     return user;
   },
 
@@ -177,4 +181,11 @@ export const useAuth = create<AuthState>((set, _get) => ({
 
 export function getCurrentUser(): SessionUser | null {
   return useAuth.getState().user ?? loadSession();
+}
+
+// Rehidrata documentos/recibos do Convex quando a sessão é restaurada
+// (ex.: reload da página) — mantém o dashboard com dados reais.
+const restoredSession = loadSession();
+if (restoredSession?.provider === "convex") {
+  void useStore.getState().hydrateFromConvex(restoredSession.id);
 }

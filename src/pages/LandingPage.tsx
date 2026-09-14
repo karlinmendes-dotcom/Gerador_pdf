@@ -9,9 +9,32 @@ import { DocumentForm } from "@/components/DocumentForm";
 import { PaymentModal } from "@/components/PaymentModal";
 import { AuthModal } from "@/components/AuthModal";
 import { Footer } from "@/components/Footer";
+import { QrCodeGenerator } from "@/components/QrCodeGenerator";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { track } from "@/lib/telemetry";
 import { DOC_TYPES, getDocType, getPrice, downloadPdf } from "@/lib/pdf-engine";
+
+/** Cards da vitrine de ferramentas (inclui os dois novos módulos). */
+const TOOL_CARDS = [
+  {
+    id: "gerador-qr",
+    icon: "⬛",
+    name: "Gerador de QR Code",
+    desc: "Textos, links e galerias de arquivos com QR exclusivo — PNG/SVG em alta qualidade.",
+    badge: "Novo",
+    action: "qr" as const,
+  },
+  {
+    id: "curriculo-profissional",
+    icon: "💼",
+    name: "Currículo Profissional",
+    desc: "Currículo elegante em 1 página, pronto para enviar em processos seletivos.",
+    badge: "Novo",
+    action: "doc" as const,
+  },
+];
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -30,6 +53,7 @@ export default function LandingPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [toast, setToast] = useState("");
 
   const showToast = (msg: string) => {
@@ -60,6 +84,7 @@ export default function LandingPage() {
       dataJson: JSON.stringify(data),
       status: "draft",
     });
+    track("document_saved", { type: quickType, mode: "draft" });
     setQuickType(null);
     showToast("Rascunho salvo! Veja no dashboard. 💾");
   };
@@ -79,6 +104,7 @@ export default function LandingPage() {
         status: "paid",
         paymentId,
       });
+      track("pdf_generated", { type: __type });
       showToast("Pagamento aprovado · PDF baixado ✅");
     } catch {
       showToast("Documento registrado como pago — baixe pelo dashboard.");
@@ -109,8 +135,10 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2">
             {user ? (
-              <Button onClick={() => nav("/app")} size="sm" variant="outline">Minha Conta</Button>
-            ) : null}
+              <ProfileMenu onOpenQrGenerator={() => setQrOpen(true)} onNavigate={() => nav("/app")} />
+            ) : (
+              <Button onClick={() => setAuthOpen(true)} size="sm" variant="outline">Entrar</Button>
+            )}
             <Button onClick={() => nav("/app")} size="sm">Acessar Plataforma</Button>
           </div>
         </div>
@@ -228,6 +256,41 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Ferramentas (QR + Currículo) ───────────────────────── */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <motion.h2 {...fadeUp} className="mb-4 text-center text-3xl font-bold md:text-4xl">
+          Ferramentas <span className="text-gradient">Express</span>
+        </motion.h2>
+        <motion.p {...fadeUp} className="mb-12 text-center text-slate-400">
+          Além dos documentos — QR Codes multifuncionais e currículo profissional.
+        </motion.p>
+        <div className="mx-auto grid max-w-3xl grid-cols-1 gap-5 sm:grid-cols-2">
+          {TOOL_CARDS.map((tool, i) => (
+            <motion.div key={tool.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.1 }}>
+              <Card
+                className="group relative h-full cursor-pointer overflow-hidden border-white/10 bg-zinc-900/60 shadow-2xl shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-500/50 hover:shadow-[0_0_44px_-10px_rgba(168,85,247,0.55)]"
+                onClick={() => (tool.action === "qr" ? setQrOpen(true) : setQuickType(tool.id))}
+              >
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-pink-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <CardHeader className="relative">
+                  <div className="mb-2 flex items-start justify-between">
+                    <span className="text-5xl transition-transform duration-300 group-hover:scale-110">{tool.icon}</span>
+                    <Badge className="border-purple-500/40 bg-purple-500/15 text-purple-300">{tool.badge}</Badge>
+                  </div>
+                  <CardTitle className="text-lg">{tool.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <CardDescription className="text-xs leading-relaxed">{tool.desc}</CardDescription>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-purple-300 transition-transform duration-300 group-hover:translate-x-1">
+                    Experimentar agora →
+                  </span>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* ─── Documentos ─────────────────────────────────────────── */}
       <section className="container mx-auto px-4 py-16 md:py-24">
         <motion.h2 {...fadeUp} className="mb-4 text-center text-3xl font-bold md:text-4xl">
@@ -236,11 +299,11 @@ export default function LandingPage() {
         <motion.p {...fadeUp} className="mb-12 text-center text-slate-400">
           Motor extensível — novos tipos entram via schema JSON.
         </motion.p>
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
           {DOC_TYPES.map((doc, i) => (
-            <motion.div key={doc.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.07 }}>
+            <motion.div key={doc.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: (i % 3) * 0.07 }}>
               <Card
-                className="group h-full cursor-pointer text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-500/40 hover:shadow-[0_0_36px_-8px_rgba(34,211,238,0.4)]"
+                className="group h-full cursor-pointer border-white/10 bg-zinc-900/60 shadow-2xl shadow-black/30 backdrop-blur-xl text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-500/40 hover:shadow-[0_0_36px_-8px_rgba(34,211,238,0.4)]"
                 onClick={() => setQuickType(doc.id)}
               >
                 <CardHeader>
@@ -334,6 +397,9 @@ export default function LandingPage() {
           onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
+
+      {/* ─── Gerador de QR Code ────────────────────────────────── */}
+      <QrCodeGenerator open={qrOpen} onOpenChange={setQrOpen} />
 
       {/* ─── Toast ──────────────────────────────────────────────── */}
       <AnimatePresence>
