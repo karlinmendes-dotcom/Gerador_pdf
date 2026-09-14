@@ -18,12 +18,14 @@ const EXAMPLES: Record<string, string> = {
   "compra-venda-veiculo": "Vendi meu VW Gol 2018 prata, placa ABC-1234, RENAVAM 12345678901, pro João da Silva por 20 mil reais. João mora na Rua das Flores, 123 em SP. Eu sou Maria Oliveira, CPF 987.654.321-00, moro na Av. Paulista, 1000. Pagamento em 12x. A venda aconteceu em São Paulo no dia 14/09/2026.",
   "recibo-pagamento": "Pedro Santos pagou R$ 1.500 de aluguel do apartamento de setembro para a Imobiliária ABC (CNPJ 12.345.678/0001-99) em São Paulo, dia 10/09/2026.",
   "declaracao-residencia": "Carlos Mendes, CPF 555.666.777-88, RG 12.345.678-9 SP, mora na Rua Augusta, 500, Apto 42, São Paulo/SP, CEP 01305-100.",
+  "contrato-aluguel-simples": "Ana Ferreira aluga o imóvel da Rua das Acácias, 78 em Campinas para Bruno Costa, CPF 333.444.555-66, por R$ 1.800 mensais, vencendo dia 5, por 12 meses, com cação de 2 aluguéis. Finalidade residencial.",
 };
 
 export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: AiTextInputProps) {
   const [text, setText] = useState("");
   const [provider, setProvider] = useState<AiProvider>("gemini");
   const [loading, setLoading] = useState(false);
+  const [mockNotice, setMockNotice] = useState(false);
   const info: Record<AiProvider, { name: string }> = {
     gemini: { name: "Google Gemini" },
     groq: { name: "Groq (Llama)" },
@@ -32,8 +34,10 @@ export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: Ai
   const handleGenerate = async () => {
     if (!text.trim()) return;
     setLoading(true);
+    setMockNotice(false);
     try {
-      const data = await generateDocumentData({ freeText: text, documentType, provider });
+      const { data, mock } = await generateDocumentData({ freeText: text, documentType, provider });
+      setMockNotice(mock);
       onGenerated(data);
     } catch (err) {
       onError(err instanceof Error ? err.message : "Erro ao gerar");
@@ -78,6 +82,12 @@ export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: Ai
         <Button onClick={handleGenerate} disabled={loading || !text.trim()} className="w-full" size="lg">
           {loading ? "Processando..." : `🤖 Gerar com ${info[provider].name}`}
         </Button>
+
+        {mockNotice && (
+          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            ⚠️ Modo offline (teste): chaves de IA não configuradas — preenchido com <strong>dados de exemplo</strong>. Revise antes de gerar o PDF.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

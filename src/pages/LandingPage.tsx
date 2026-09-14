@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DocumentForm } from "@/components/DocumentForm";
 import { PaymentModal } from "@/components/PaymentModal";
 import { AuthModal } from "@/components/AuthModal";
+import { Footer } from "@/components/Footer";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { DOC_TYPES, getDocType, getPrice, generatePdf, downloadPdf } from "@/lib/pdf-engine";
@@ -347,6 +348,8 @@ export default function LandingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Footer />
     </div>
   );
 }

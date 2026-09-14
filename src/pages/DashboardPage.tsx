@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentForm } from "@/components/DocumentForm";
 import { AiTextInput } from "@/components/AiTextInput";
 import { PaymentModal } from "@/components/PaymentModal";
+import { Footer } from "@/components/Footer";
 import { AuthModal } from "@/components/AuthModal";
 import { ReceiptBook } from "@/components/ReceiptBook";
 import { GovBrGuide } from "@/components/GovBrGuide";
@@ -590,6 +591,8 @@ export default function DashboardPage() {
           onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
+
+      <Footer />
     </div>
   );
 }
