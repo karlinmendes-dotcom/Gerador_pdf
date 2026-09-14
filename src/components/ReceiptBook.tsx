@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useStore, type Receipt } from "@/lib/store";
@@ -58,6 +58,7 @@ export function ReceiptBook({ documentId }: ReceiptBookProps) {
     if (s === "overdue") return <AlertCircle className="h-4 w-4 text-red-400" />;
     return <Clock className="h-4 w-4 text-amber-400" />;
   };
+  void icon; // reserva para uso no modo compacto
 
   const badge = (s: Receipt["status"]) => {
     if (s === "paid") return <Badge variant="success">Pago</Badge>;

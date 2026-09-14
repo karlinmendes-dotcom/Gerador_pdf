@@ -143,11 +143,10 @@ function page(
 
 // ─── Corpos dos documentos ────────────────────────────────────────────
 
+/** Formata o valor monetário (mantém o formato brasileiro já informado pelo usuário). */
 function brl(v: string): string {
   return v;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 const BODY_BUILDERS: Record<string, (d: Record<string, string>) => string> = {
   "compra-venda-veiculo": (d) => `CONTRATO PARTICULAR DE COMPRA E VENDA DE VEÍCULO AUTOMOTOR
@@ -225,10 +224,6 @@ O(A) LOCATÁRIO(A) obriga-se a usar o imóvel conforme a finalidade pactuada, co
 };
 
 // ─── Geração ──────────────────────────────────────────────────────────
-
-function replaceVars(text: string, data: Record<string, string>): string {
-  return text.replace(/\{\{(\w+)\}\}/g, (_, k) => data[k] ?? `{{${k}}}`);
-}
 
 /** Assinaturas por documento (ordem: esquerda → direita). */
 function signersFor(id: string, d: Record<string, string>): string[] {

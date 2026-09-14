@@ -22,7 +22,6 @@ type View = "dashboard" | "new" | "receipts";
 export default function DashboardPage() {
   const nav = useNavigate();
   const addDocument = useStore((s) => s.addDocument);
-  const updateDocument = useStore((s) => s.updateDocument);
   const removeDocument = useStore((s) => s.removeDocument);
   const addReceipts = useStore((s) => s.addReceipts);
   const userDocs = useStore((s) => s.getUserDocuments());
@@ -32,7 +31,7 @@ export default function DashboardPage() {
 
   const [view, setView] = useState<View>("dashboard");
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [payDoc, setPayDoc] = useState<string | null>(null);
   const [receiptsDoc, setReceiptsDoc] = useState<Document | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);

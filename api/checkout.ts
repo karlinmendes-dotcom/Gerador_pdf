@@ -42,7 +42,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const txData = (result.point_of_interaction as any)?.transaction_data ?? {};
+    interface PixTransactionData {
+      qr_code_base64?: string;
+      qr_code?: string;
+      ticket_url?: string;
+    }
+    const poi = result.point_of_interaction as { transaction_data?: PixTransactionData } | undefined;
+    const txData = poi?.transaction_data ?? {};
 
     return res.status(200).json({
       paymentId: result.id,

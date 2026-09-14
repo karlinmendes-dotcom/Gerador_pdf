@@ -11,7 +11,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { Footer } from "@/components/Footer";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { DOC_TYPES, getDocType, getPrice, generatePdf, downloadPdf } from "@/lib/pdf-engine";
+import { DOC_TYPES, getDocType, getPrice, downloadPdf } from "@/lib/pdf-engine";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },

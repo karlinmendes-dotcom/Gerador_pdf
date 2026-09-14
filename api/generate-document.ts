@@ -85,7 +85,7 @@ const RentSchema = z.object({
   data_assinatura: str("Data de assinatura DD/MM/AAAA"),
 });
 
-const SCHEMAS: Record<string, z.ZodObject<any>> = {
+const SCHEMAS: Record<string, z.ZodObject<Record<string, z.ZodTypeAny>>> = {
   "compra-venda-veiculo": VehicleSaleSchema,
   "recibo-pagamento": ReceiptSchema,
   "declaracao-residencia": ResidenceSchema,
@@ -141,8 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       model,
       schema,
       prompt: `${prompt}\n\nTexto do usuário:\n${freeText}`,
-      output: "object",
-    } as any);
+    });
 
     const data: Record<string, string> = {};
     for (const [k, v] of Object.entries(object as Record<string, unknown>)) {

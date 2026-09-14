@@ -83,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.status(200).json({ received: true });
-  } catch (err) {
+  } catch {
     // Always ACK to prevent webhook retry storms
     return res.status(200).json({ received: true });
   }

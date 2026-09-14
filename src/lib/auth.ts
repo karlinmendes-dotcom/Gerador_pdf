@@ -98,7 +98,7 @@ function saveUsers(users: StoredUser[]) {
   }
 }
 
-export const useAuth = create<AuthState>((set, get) => ({
+export const useAuth = create<AuthState>((set, _get) => ({
   user: loadSession(),
 
   signIn: async (email, password) => {
