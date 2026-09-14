@@ -10,6 +10,7 @@ export interface Document {
   dataJson: string;
   pdfUrl?: string;
   status: DocStatus;
+  paymentId?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -38,15 +39,34 @@ interface StoreState {
   getDocument: (id: string) => Document | undefined;
   getUserDocuments: () => Document[];
 
-  addReceipt: (r: Omit<Receipt, "_id" | "createdAt" | "updatedAt">) => Receipt;
-  updateInstallment: (receiptId: string, updates: Partial<Receipt>) => void;
+  addReceipts: (receipts: Omit<Receipt, "_id" | "createdAt" | "updatedAt">[]) => void;
+  updateReceipt: (id: string, updates: Partial<Receipt>) => void;
   getReceiptsForDocument: (documentId: string) => Receipt[];
 }
 
 const uid = (p: string) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const LOCAL_USER = "user_local";
 
-function loadFromStorage<T>(key: string, fallback: T): T {
+const CONVEX_URL =
+  (import.meta.env.VITE_CONVEX_URL as string | undefined) ??
+  (import.meta.env.NEXT_PUBLIC_CONVEX_URL as string | undefined) ??
+  "";
+
+/** Fire-and-forget persistence into Convex when the backend is connected. */
+async function convexSync(kind: "documents" | "receipts", action: string, payload: unknown) {
+  if (!CONVEX_URL) return; // offline/draft mode: localStorage only
+  try {
+    await fetch(`${CONVEX_URL}/api/mutation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: `${kind}:${action}`, args: payload }),
+    });
+  } catch {
+    // Convex unreachable — local state remains source of truth in draft mode
+  }
+}
+
+function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
@@ -55,17 +75,17 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   }
 }
 
-function saveToStorage(key: string, value: unknown) {
+function save(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // quota exceeded — ignore
+    // quota — ignore
   }
 }
 
 export const useStore = create<StoreState>((set, get) => ({
-  documents: loadFromStorage("pdfforge:documents", []),
-  receipts: loadFromStorage("pdfforge:receipts", []),
+  documents: load<Document[]>("pdfforge:documents", []),
+  receipts: load<Receipt[]>("pdfforge:receipts", []),
   userId: LOCAL_USER,
 
   addDocument: (doc) => {
@@ -73,8 +93,15 @@ export const useStore = create<StoreState>((set, get) => ({
     const created: Document = { ...doc, _id: uid("doc"), createdAt: now, updatedAt: now };
     set((s) => {
       const documents = [created, ...s.documents];
-      saveToStorage("pdfforge:documents", documents);
+      save("pdfforge:documents", documents);
       return { documents };
+    });
+    void convexSync("documents", "create", {
+      userId: created.userId,
+      documentType: created.documentType,
+      title: created.title,
+      dataJson: created.dataJson,
+      status: created.status,
     });
     return created;
   },
@@ -84,14 +111,16 @@ export const useStore = create<StoreState>((set, get) => ({
       const documents = s.documents.map((d) =>
         d._id === id ? { ...d, ...updates, updatedAt: Date.now() } : d
       );
-      saveToStorage("pdfforge:documents", documents);
+      save("pdfforge:documents", documents);
+      void convexSync("documents", "update", { id, ...updates });
       return { documents };
     }),
 
   removeDocument: (id) =>
     set((s) => {
       const documents = s.documents.filter((d) => d._id !== id);
-      saveToStorage("pdfforge:documents", documents);
+      save("pdfforge:documents", documents);
+      void convexSync("documents", "remove", { id });
       return { documents };
     }),
 
@@ -100,28 +129,37 @@ export const useStore = create<StoreState>((set, get) => ({
   getUserDocuments: () =>
     get().documents.filter((d) => d.userId === get().userId).sort((a, b) => b.createdAt - a.createdAt),
 
-  addReceipt: (r) => {
+  addReceipts: (list) => {
     const now = Date.now();
-    const created: Receipt = { ...r, _id: uid("rct"), createdAt: now, updatedAt: now };
+    const created: Receipt[] = list.map((r) => ({ ...r, _id: uid("rct"), createdAt: now, updatedAt: now }));
     set((s) => {
-      const receipts = [...s.receipts, created];
-      saveToStorage("pdfforge:receipts", receipts);
+      const receipts = [...s.receipts, ...created];
+      save("pdfforge:receipts", receipts);
       return { receipts };
     });
-    return created;
+    for (const r of created) {
+      void convexSync("receipts", "create", {
+        documentId: r.documentId,
+        installmentNumber: r.installmentNumber,
+        amount: r.amount,
+        dueDate: r.dueDate,
+        status: r.status,
+      });
+    }
   },
 
-  updateInstallment: (receiptId, updates) =>
+  updateReceipt: (id, updates) =>
     set((s) => {
       const receipts = s.receipts.map((r) =>
-        r._id === receiptId ? { ...r, ...updates, updatedAt: Date.now() } : r
+        r._id === id ? { ...r, ...updates, updatedAt: Date.now() } : r
       );
-      saveToStorage("pdfforge:receipts", receipts);
+      save("pdfforge:receipts", receipts);
+      void convexSync("receipts", "update", { id, ...updates });
       return { receipts };
     }),
 
   getReceiptsForDocument: (documentId) =>
-    get().receipts
-      .filter((r) => r.documentId === documentId)
+    get()
+      .receipts.filter((r) => r.documentId === documentId)
       .sort((a, b) => a.installmentNumber - b.installmentNumber),
 }));

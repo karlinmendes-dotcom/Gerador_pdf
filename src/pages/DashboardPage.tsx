@@ -7,19 +7,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DocumentForm } from "@/components/DocumentForm";
 import { AiTextInput } from "@/components/AiTextInput";
+import { PaymentModal } from "@/components/PaymentModal";
+import { ReceiptBook } from "@/components/ReceiptBook";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Plus } from "lucide-react";
+import { FileText, Download, Trash2, Plus, BookOpen } from "lucide-react";
+
+const PRICES: Record<string, number> = {
+  "compra-venda-veiculo": 19.9,
+  "recibo-pagamento": 9.9,
+  "declaracao-residencia": 9.9,
+};
 
 export default function DashboardPage() {
   const nav = useNavigate();
   const addDocument = useStore((s) => s.addDocument);
-  const removeDocument = useStore((s) => s.removeDocument);
   const updateDocument = useStore((s) => s.updateDocument);
+  const removeDocument = useStore((s) => s.removeDocument);
+  const addReceipts = useStore((s) => s.addReceipts);
   const userDocs = useStore((s) => s.getUserDocuments());
 
   const [showNew, setShowNew] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [installments, setInstallments] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [payDoc, setPayDoc] = useState<string | null>(null);
+  const [viewDoc, setViewDoc] = useState<Document | null>(null);
 
   const badge = (s: string) => {
     if (s === "paid") return <Badge variant="success">Concluído</Badge>;
@@ -29,30 +41,71 @@ export default function DashboardPage() {
   const total = userDocs.length;
   const done = userDocs.filter((d) => d.status === "paid").length;
 
+  /** Extracts installment count from the forma_pagamento field when present. */
+  const detectInstallments = (data: Record<string, string>): number => {
+    const text = `${data.forma_pagamento ?? ""} ${data.recibo_referencia ?? ""}`.toLowerCase();
+    const match = text.match(/(\d{1,2})\s*x\b|(\d{1,2})\s*parcelas?|parcelado em (\d{1,2})/);
+    if (!match) return 1;
+    const n = Number(match[1] ?? match[2] ?? match[3] ?? 1);
+    return Number.isFinite(n) ? Math.min(Math.max(n, 1), 60) : 1;
+  };
+
   const handleFormSubmit = (data: Record<string, string>) => {
     if (!selectedType) return;
     setLoading(true);
     setTimeout(() => {
-      addDocument({
+      const n = detectInstallments(data);
+      const doc = addDocument({
         userId: useStore.getState().userId,
         documentType: selectedType,
         title: `${getDocType(selectedType)?.name ?? selectedType} — ${new Date().toLocaleDateString("pt-BR")}`,
         dataJson: JSON.stringify(data),
         status: "draft",
       });
+
+      // Register installments in the receipts table for installment contracts
+      if (n > 1) {
+        const baseValue = 1666.67; // reference value; production: parse from data
+        const today = new Date();
+        addReceipts(
+          Array.from({ length: n }, (_, i) => {
+            const due = new Date(today.getFullYear(), today.getMonth() + i + 1, 10);
+            return {
+              documentId: doc._id,
+              installmentNumber: i + 1,
+              amount: baseValue,
+              dueDate: due.toLocaleDateString("pt-BR"),
+              status: "pending" as const,
+            };
+          })
+        );
+      }
+
       setLoading(false);
       setShowNew(false);
       setSelectedType(null);
+      setInstallments(1);
     }, 400);
   };
 
   const handleAiGenerated = (data: Record<string, string>) => handleFormSubmit(data);
 
   const handleDownload = (doc: Document) => {
+    if (doc.status !== "paid") {
+      setPayDoc(doc._id);
+      return;
+    }
     const data = JSON.parse(doc.dataJson);
     downloadPdf(doc.documentType, data, `${doc.title}.pdf`);
-    if (doc.status === "draft") {
-      updateDocument(doc._id, { status: "paid" });
+  };
+
+  const handlePaymentConfirmed = (paymentId: string) => {
+    if (payDoc) {
+      updateDocument(payDoc, { status: "paid", paymentId });
+      setTimeout(() => {
+        const doc = useStore.getState().getDocument(payDoc);
+        if (doc) downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
+      }, 400);
     }
   };
 
@@ -111,37 +164,39 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {userDocs.map((doc) => {
-                  const t = getDocType(doc.documentType);
-                  return (
-                    <div key={doc._id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <span className="text-2xl">{t?.icon ?? "📄"}</span>
-                        <div>
-                          <h3 className="font-medium">{doc.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {t?.name ?? doc.documentType} · {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {badge(doc.status)}
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="Baixar PDF">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => removeDocument(doc._id)} title="Excluir">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                {userDocs.map((doc) => (
+                  <div key={doc._id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">{getDocType(doc.documentType)?.icon ?? "📄"}</span>
+                      <div>
+                        <h3 className="font-medium">{doc.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {getDocType(doc.documentType)?.name ?? doc.documentType} ·{" "}
+                          {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center gap-2">
+                      {badge(doc.status)}
+                      <Button variant="ghost" size="icon" onClick={() => setViewDoc(doc)} title="Livro de Recibos">
+                        <BookOpen className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="Baixar PDF">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => removeDocument(doc._id)} title="Excluir">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </main>
 
+      {/* New document dialog */}
       <Dialog open={showNew} onOpenChange={(o) => { setShowNew(o); if (!o) setSelectedType(null); }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -178,6 +233,28 @@ export default function DashboardPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Receipts viewer */}
+      <Dialog open={!!viewDoc} onOpenChange={() => setViewDoc(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewDoc?.title}</DialogTitle>
+            <DialogDescription>Livro de Recibos — progresso das parcelas</DialogDescription>
+          </DialogHeader>
+          {viewDoc && <ReceiptBook documentId={viewDoc._id} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* PIX payment */}
+      {payDoc && (
+        <PaymentModal
+          open={!!payDoc}
+          onOpenChange={(o) => { if (!o) setPayDoc(null); }}
+          documentId={payDoc}
+          amount={PRICES[useStore.getState().getDocument(payDoc)?.documentType ?? ""] ?? 9.9}
+          onPaymentConfirmed={handlePaymentConfirmed}
+        />
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { generateDocumentData, getProviderInfo, type AiProvider } from "@/lib/ai-document-generator";
+import { generateDocumentData, type AiProvider } from "@/lib/ai-document-generator";
 
 interface AiTextInputProps {
   documentType: string;
@@ -21,7 +21,10 @@ export function AiTextInput({ documentType, onGenerated, onError }: AiTextInputP
   const [text, setText] = useState("");
   const [provider, setProvider] = useState<AiProvider>("gemini");
   const [loading, setLoading] = useState(false);
-  const info = getProviderInfo();
+  const info: Record<AiProvider, { name: string }> = {
+    gemini: { name: "Google Gemini" },
+    groq: { name: "Groq (Llama)" },
+  };
 
   const handleGenerate = async () => {
     if (!text.trim()) return;

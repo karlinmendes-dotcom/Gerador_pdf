@@ -17,9 +17,9 @@ Formulário dinâmico → geração do PDF → metadados salvos no Convex → da
 ## Rodando localmente
 
 ```bash
-bun install
-cp env.example .env.local   # preencha as chaves
-bun run dev
+npm install
+npm run build    # gera dist/ (Vite) — pronto para a Vercel
+npm run dev
 ```
 
 ## Build de produção
@@ -30,7 +30,7 @@ bun run build   # gera dist/ (Vite) — pronto para a Vercel
 
 ## Conectando o Convex
 
-O schema completo está em `src/convex/`:
+O schema completo está em `convex/` (raiz do projeto):
 
 - `schema.ts` — tabelas `users`, `documents` (com `pdfUrl`), `receipts` (parcelas + comprovante)
 - `documents.ts`, `receipts.ts`, `users.ts` — queries e mutations prontas
