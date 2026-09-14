@@ -12,6 +12,7 @@ import { AiTextInput } from "@/components/AiTextInput";
 import { PaymentModal } from "@/components/PaymentModal";
 import { AuthModal } from "@/components/AuthModal";
 import { ReceiptBook } from "@/components/ReceiptBook";
+import { GovBrGuide } from "@/components/GovBrGuide";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FileText, Download, Trash2, Plus, BookOpen, LayoutDashboard, Menu, LogOut, LogIn } from "lucide-react";
 
@@ -41,14 +42,45 @@ export default function DashboardPage() {
 
   const total = userDocs.length;
   const done = userDocs.filter((d) => d.status === "paid").length;
+  const installmentDocs = userDocs.filter((d) =>
+    ["compra-venda-veiculo", "contrato-aluguel-simples", "recibo-pagamento"].includes(d.documentType)
+  );
 
-  /** Detecta parcelamento no campo forma_pagamento (ex: "12x", "12 parcelas"). */
-  const detectInstallments = (data: Record<string, string>): number => {
-    const text = `${data.forma_pagamento ?? ""} ${data.recibo_referencia ?? ""}`.toLowerCase();
+  /**
+   * Detecta o número de parcelas a partir dos campos do schema:
+   * - recibo-pagamento: checkbox `parcelamento` + `numero_parcelas`
+   * - contrato-aluguel-simples: `duracao_meses` (1 parcela/mês)
+   * - compra-venda-veiculo: "12x"/"12 parcelas" na forma_pagamento
+   */
+  const detectInstallments = (docType: string, data: Record<string, string>): number => {
+    if (docType === "recibo-pagamento") {
+      if (data.parcelamento !== "true") return 1;
+      const n = Number(data.numero_parcelas ?? 1);
+      return Number.isFinite(n) ? Math.min(Math.max(n, 1), 60) : 1;
+    }
+    if (docType === "contrato-aluguel-simples") {
+      const n = Number(data.duracao_meses ?? 1);
+      return Number.isFinite(n) ? Math.min(Math.max(n, 1), 60) : 1;
+    }
+    const text = `${data.forma_pagamento ?? ""} ${data.parcelamento_detalhe ?? ""}`.toLowerCase();
     const m = text.match(/(\d{1,2})\s*x\b|(\d{1,2})\s*parcelas?|parcelado em (\d{1,2})/);
     if (!m) return 1;
     const n = Number(m[1] ?? m[2] ?? m[3] ?? 1);
     return Number.isFinite(n) ? Math.min(Math.max(n, 1), 60) : 1;
+  };
+
+  /** Valor por parcela conforme o documento. */
+  const installmentAmount = (docType: string, data: Record<string, string>, n: number): number => {
+    const parse = (v?: string) => Number((v ?? "").replace(/\./g, "").replace(",", ".")) || 0;
+    if (docType === "recibo-pagamento") {
+      const per = parse(data.valor_parcela);
+      if (per > 0) return per;
+      return parse(data.valor) / (n || 1);
+    }
+    if (docType === "contrato-aluguel-simples") {
+      return parse(data.valor_aluguel);
+    }
+    return parse(data.valor_total) / (n || 1);
   };
 
   const persistDocument = (
@@ -66,10 +98,9 @@ export default function DashboardPage() {
       paymentId,
     });
 
-    const n = detectInstallments(data);
+    const n = detectInstallments(type, data);
     if (n > 1) {
-      const value = Number((data.valor_total ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
-      const per = n > 0 ? value / n : 0;
+      const per = installmentAmount(type, data, n);
       const today = new Date();
       addReceipts(
         Array.from({ length: n }, (_, i) => {
@@ -455,18 +486,17 @@ export default function DashboardPage() {
               >
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Contratos parcelados</CardTitle>
+                    <CardTitle className="text-base">Contratos e recibos parcelados</CardTitle>
                     <CardDescription>Envie o comprovante Pix de cada parcela</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2.5">
-                    {userDocs.filter((d) => d.documentType === "compra-venda-veiculo").length === 0 ? (
+                    {installmentDocs.length === 0 ? (
                       <p className="py-8 text-center text-sm text-slate-400">
-                        Nenhum contrato ainda. Crie um contrato informando "12x" na forma de pagamento.
+                        Nenhum documento parcelado ainda. Marque "Pagamento parcelado" no recibo,
+                        informe a duração no contrato de aluguel ou "12x" no contrato de veículo.
                       </p>
                     ) : (
-                      userDocs
-                        .filter((d) => d.documentType === "compra-venda-veiculo")
-                        .map((doc) => <ReceiptCard key={doc._id} doc={doc} onOpen={() => setReceiptsDoc(doc)} />)
+                      installmentDocs.map((doc) => <ReceiptCard key={doc._id} doc={doc} onOpen={() => setReceiptsDoc(doc)} />)
                     )}
                   </CardContent>
                 </Card>
@@ -519,7 +549,12 @@ export default function DashboardPage() {
             <DialogTitle className="flex items-center gap-2"><span>📒</span> {receiptsDoc?.title}</DialogTitle>
             <DialogDescription>Livro de Recibos — progresso das parcelas</DialogDescription>
           </DialogHeader>
-          {receiptsDoc && <ReceiptBook documentId={receiptsDoc._id} />}
+          {receiptsDoc && (
+            <div className="space-y-5">
+              <ReceiptBook documentId={receiptsDoc._id} />
+              <GovBrGuide compact />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -574,7 +609,9 @@ function ReceiptCard({ doc, onOpen }: { doc: Document; onOpen: () => void }) {
       className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left transition-all hover:border-purple-500/30 hover:bg-white/[0.05]"
     >
       <span className="flex min-w-0 items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xl ring-1 ring-white/10">🚗</span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xl ring-1 ring-white/10">
+          {getDocType(doc.documentType)?.icon ?? "📄"}
+        </span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">{doc.title}</span>
           <span className="mt-1 block h-1.5 w-32 overflow-hidden rounded-full bg-white/[0.08]">

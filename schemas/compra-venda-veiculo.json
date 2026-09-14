@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "compra-venda-veiculo",
+  "title": "Contrato de Compra e Venda de Veículo",
+  "description": "Contrato particular de compra e venda de veículo automotor usado.",
+  "type": "object",
+  "properties": {
+    "vendedor_nome": {
+      "type": "string",
+      "title": "Nome do Vendedor",
+      "minLength": 3
+    },
+    "vendedor_cpf_cnpj": {
+      "type": "string",
+      "title": "CPF/CNPJ do Vendedor",
+      "description": "Ex.: 000.000.000-00 ou 00.000.000/0000-00"
+    },
+    "vendedor_rg": {
+      "type": "string",
+      "title": "RG do Vendedor"
+    },
+    "vendedor_endereco": {
+      "type": "string",
+      "title": "Endereço do Vendedor",
+      "minLength": 5
+    },
+    "comprador_nome": {
+      "type": "string",
+      "title": "Nome do Comprador",
+      "minLength": 3
+    },
+    "comprador_cpf_cnpj": {
+      "type": "string",
+      "title": "CPF/CNPJ do Comprador",
+      "description": "Ex.: 000.000.000-00 ou 00.000.000/0000-00"
+    },
+    "comprador_rg": {
+      "type": "string",
+      "title": "RG do Comprador"
+    },
+    "comprador_endereco": {
+      "type": "string",
+      "title": "Endereço do Comprador",
+      "minLength": 5
+    },
+    "veiculo_marca": {
+      "type": "string",
+      "title": "Marca",
+      "placeholder": "Volkswagen"
+    },
+    "veiculo_modelo": {
+      "type": "string",
+      "title": "Modelo",
+      "placeholder": "Gol"
+    },
+    "veiculo_ano_modelo": {
+      "type": "string",
+      "title": "Ano/Modelo",
+      "placeholder": "2018/2019"
+    },
+    "veiculo_placa": {
+      "type": "string",
+      "title": "Placa",
+      "placeholder": "ABC-1234 ou ABC1D23"
+    },
+    "veiculo_renavam": {
+      "type": "string",
+      "title": "RENAVAM",
+      "placeholder": "00000000000"
+    },
+    "veiculo_cor": {
+      "type": "string",
+      "title": "Cor",
+      "placeholder": "Prata"
+    },
+    "veiculo_chassi": {
+      "type": "string",
+      "title": "Chassi",
+      "placeholder": "00000000000000000"
+    },
+    "valor_total": {
+      "type": "string",
+      "title": "Valor Total (R$)",
+      "placeholder": "20.000,00"
+    },
+    "forma_pagamento": {
+      "type": "string",
+      "title": "Forma de Pagamento",
+      "enum": ["À vista", "Parcelado"]
+    },
+    "parcelamento_detalhe": {
+      "type": "string",
+      "title": "Detalhe do Parcelamento",
+      "description": "Ex.: 12x de R$ 1.666,67 (obrigatório se Parcelado)"
+    },
+    "data_entrega": {
+      "type": "string",
+      "title": "Data de Entrega",
+      "placeholder": "DD/MM/AAAA"
+    },
+    "local_venda": {
+      "type": "string",
+      "title": "Local da Venda (Cidade/UF)",
+      "placeholder": "São Paulo/SP"
+    },
+    "data_venda": {
+      "type": "string",
+      "title": "Data da Venda",
+      "placeholder": "DD/MM/AAAA"
+    }
+  },
+  "required": [
+    "vendedor_nome",
+    "vendedor_cpf_cnpj",
+    "vendedor_endereco",
+    "comprador_nome",
+    "comprador_cpf_cnpj",
+    "comprador_endereco",
+    "veiculo_marca",
+    "veiculo_modelo",
+    "veiculo_ano_modelo",
+    "veiculo_placa",
+    "veiculo_renavam",
+    "valor_total",
+    "forma_pagamento",
+    "data_entrega",
+    "local_venda",
+    "data_venda"
+  ]
+}

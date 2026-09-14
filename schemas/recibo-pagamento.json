@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "recibo-pagamento",
+  "title": "Recibo de Pagamento",
+  "description": "Recibo simples de pagamento com opção de parcelamento vinculado ao Livro de Recibos.",
+  "type": "object",
+  "properties": {
+    "pagador_nome": {
+      "type": "string",
+      "title": "Nome do Pagador",
+      "minLength": 3
+    },
+    "pagador_cpf_cnpj": {
+      "type": "string",
+      "title": "CPF/CNPJ do Pagador",
+      "description": "Ex.: 000.000.000-00 ou 00.000.000/0000-00"
+    },
+    "recebedor_nome": {
+      "type": "string",
+      "title": "Nome do Recebedor",
+      "minLength": 3
+    },
+    "recebedor_cpf_cnpj": {
+      "type": "string",
+      "title": "CPF/CNPJ do Recebedor",
+      "description": "Ex.: 000.000.000-00 ou 00.000.000/0000-00"
+    },
+    "valor": {
+      "type": "string",
+      "title": "Valor (R$)",
+      "placeholder": "1.500,00"
+    },
+    "referente_a": {
+      "type": "string",
+      "title": "Referente a (descrição do serviço/produto)",
+      "minLength": 5,
+      "placeholder": "Aluguel do apartamento — Setembro/2026"
+    },
+    "parcelamento": {
+      "type": "boolean",
+      "title": "Pagamento parcelado?",
+      "description": "Ative para vincular as parcelas ao Livro de Recibos",
+      "default": false
+    },
+    "numero_parcelas": {
+      "type": "number",
+      "title": "Número de Parcelas",
+      "minimum": 1,
+      "maximum": 60
+    },
+    "valor_parcela": {
+      "type": "string",
+      "title": "Valor da Parcela (R$)",
+      "placeholder": "500,00"
+    },
+    "cidade": {
+      "type": "string",
+      "title": "Cidade",
+      "minLength": 2
+    },
+    "data": {
+      "type": "string",
+      "title": "Data",
+      "placeholder": "DD/MM/AAAA"
+    }
+  },
+  "required": [
+    "pagador_nome",
+    "pagador_cpf_cnpj",
+    "recebedor_nome",
+    "recebedor_cpf_cnpj",
+    "valor",
+    "referente_a",
+    "cidade",
+    "data"
+  ]
+}

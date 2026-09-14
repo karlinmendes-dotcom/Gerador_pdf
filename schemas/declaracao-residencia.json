@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "declaracao-residencia",
+  "title": "Declaração de Residência",
+  "description": "Declaração de endereço com fins de prova, feita sob as penas da lei (Art. 299 do Código Penal).",
+  "type": "object",
+  "properties": {
+    "declarante_nome": {
+      "type": "string",
+      "title": "Nome Completo",
+      "minLength": 3
+    },
+    "declarante_cpf": {
+      "type": "string",
+      "title": "CPF",
+      "placeholder": "000.000.000-00"
+    },
+    "declarante_rg": {
+      "type": "string",
+      "title": "RG"
+    },
+    "declarante_profissao": {
+      "type": "string",
+      "title": "Profissão",
+      "placeholder": "Analista de sistemas"
+    },
+    "endereco_rua": {
+      "type": "string",
+      "title": "Rua / Logradouro",
+      "minLength": 3
+    },
+    "endereco_numero": {
+      "type": "string",
+      "title": "Número"
+    },
+    "endereco_bairro": {
+      "type": "string",
+      "title": "Bairro"
+    },
+    "endereco_complemento": {
+      "type": "string",
+      "title": "Complemento (opcional)",
+      "placeholder": "Apto 42, Bloco B"
+    },
+    "endereco_cep": {
+      "type": "string",
+      "title": "CEP",
+      "placeholder": "00000-000"
+    },
+    "endereco_cidade": {
+      "type": "string",
+      "title": "Cidade",
+      "minLength": 2
+    },
+    "endereco_estado": {
+      "type": "string",
+      "title": "Estado (UF)",
+      "enum": ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
+    },
+    "data": {
+      "type": "string",
+      "title": "Data da Declaração",
+      "placeholder": "DD/MM/AAAA"
+    }
+  },
+  "required": [
+    "declarante_nome",
+    "declarante_cpf",
+    "declarante_rg",
+    "declarante_profissao",
+    "endereco_rua",
+    "endereco_numero",
+    "endereco_bairro",
+    "endereco_cep",
+    "endereco_cidade",
+    "endereco_estado",
+    "data"
+  ]
+}

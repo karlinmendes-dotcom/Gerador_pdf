@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "contrato-aluguel-simples",
+  "title": "Contrato de Aluguel Residencial Simples",
+  "description": "Contrato de locação residencial simples entre locador e locatário.",
+  "type": "object",
+  "properties": {
+    "locador_nome": {
+      "type": "string",
+      "title": "Nome do Locador",
+      "minLength": 3
+    },
+    "locador_cpf_cnpj": {
+      "type": "string",
+      "title": "CPF/CNPJ do Locador",
+      "description": "Ex.: 000.000.000-00 ou 00.000.000/0000-00"
+    },
+    "locador_rg": {
+      "type": "string",
+      "title": "RG do Locador"
+    },
+    "locador_endereco": {
+      "type": "string",
+      "title": "Endereço do Locador",
+      "minLength": 5
+    },
+    "locatario_nome": {
+      "type": "string",
+      "title": "Nome do Locatário",
+      "minLength": 3
+    },
+    "locatario_cpf_cnpj": {
+      "type": "string",
+      "title": "CPF/CNPJ do Locatário",
+      "description": "Ex.: 000.000.000-00 ou 00.000.000/0000-00"
+    },
+    "locatario_rg": {
+      "type": "string",
+      "title": "RG do Locatário"
+    },
+    "locatario_endereco": {
+      "type": "string",
+      "title": "Endereço do Locatário",
+      "minLength": 5
+    },
+    "imovel_endereco": {
+      "type": "string",
+      "title": "Endereço do Imóvel",
+      "minLength": 5
+    },
+    "imovel_finalidade": {
+      "type": "string",
+      "title": "Finalidade do Imóvel",
+      "enum": ["Residencial", "Comercial"]
+    },
+    "valor_aluguel": {
+      "type": "string",
+      "title": "Valor do Aluguel (R$)",
+      "placeholder": "1.500,00"
+    },
+    "dia_vencimento": {
+      "type": "number",
+      "title": "Dia de Vencimento",
+      "minimum": 1,
+      "maximum": 31,
+      "placeholder": "10"
+    },
+    "duracao_meses": {
+      "type": "number",
+      "title": "Duração do Contrato (meses)",
+      "minimum": 1,
+      "maximum": 60
+    },
+    "valor_caucao": {
+      "type": "string",
+      "title": "Valor da Caução/Garantia (R$)",
+      "placeholder": "3.000,00"
+    },
+    "forma_garantia": {
+      "type": "string",
+      "title": "Forma de Garantia",
+      "enum": ["Caução", "Fiador", "Seguro-fiança", "Sem garantia"]
+    },
+    "data_inicio": {
+      "type": "string",
+      "title": "Data de Início",
+      "placeholder": "DD/MM/AAAA"
+    },
+    "cidade": {
+      "type": "string",
+      "title": "Cidade de Assinatura",
+      "minLength": 2
+    },
+    "data_assinatura": {
+      "type": "string",
+      "title": "Data de Assinatura",
+      "placeholder": "DD/MM/AAAA"
+    }
+  },
+  "required": [
+    "locador_nome",
+    "locador_cpf_cnpj",
+    "locador_endereco",
+    "locatario_nome",
+    "locatario_cpf_cnpj",
+    "locatario_endereco",
+    "imovel_endereco",
+    "imovel_finalidade",
+    "valor_aluguel",
+    "dia_vencimento",
+    "duracao_meses",
+    "forma_garantia",
+    "data_inicio",
+    "cidade",
+    "data_assinatura"
+  ]
+}

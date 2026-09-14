@@ -1,4 +1,4 @@
-import { getDocType } from "./pdf-engine";
+import { getSchemaFieldKeys } from "./document-schemas";
 
 export type AiProvider = "gemini" | "groq";
 
@@ -29,27 +29,11 @@ export async function generateDocumentData({
 
   const body = (await res.json()) as { data: Record<string, string> };
 
-  // Fill any missing keys with empty strings so the form renders fully
-  const docType = getDocType(documentType);
+  // Normaliza: garante todas as chaves do schema (string vazia quando ausente)
+  const keys = getSchemaFieldKeys(documentType);
   const data: Record<string, string> = {};
-  if (docType) {
-    for (const field of getFieldsFor(documentType)) {
-      data[field] = body.data?.[field] ?? "";
-    }
+  for (const key of keys) {
+    data[key] = String(body.data?.[key] ?? "");
   }
   return { ...data, ...body.data };
-}
-
-// Minimal field lists to normalize AI output per document type
-function getFieldsFor(documentType: string): string[] {
-  switch (documentType) {
-    case "compra-venda-veiculo":
-      return ["comprador_nome", "comprador_cpf", "comprador_endereco", "vendedor_nome", "vendedor_cpf", "vendedor_endereco", "veiculo_descricao", "veiculo_placa", "veiculo_renavam", "valor_total", "valor_por_extenso", "data_venda", "local_venda", "forma_pagamento"];
-    case "recibo-pagamento":
-      return ["recibo_pagador", "recibo_cpf_pagador", "recibo_recebedor", "recibo_cnpj_recebedor", "recibo_valor", "recibo_valor_extenso", "recibo_referencia", "recibo_data", "recibo_local"];
-    case "declaracao-residencia":
-      return ["declarante_nome", "declarante_cpf", "declarante_rg", "declarante_endereco", "declarante_cidade", "declarante_estado", "declarante_cep", "declarante_data", "declarante_local"];
-    default:
-      return [];
-  }
 }
