@@ -13,7 +13,7 @@
     "@ai-sdk/google": "^4.0.69",
     "@ai-sdk/groq": "^4.0.41",
     "@pdfme/common": "5.5.10",
-    "@pdfme/generator": "^5.3.4",
+    "@pdfme/generator": "5.5.10",
     "@pdfme/schemas": "5.5.10",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-label": "^2.1.1",
@@ -35,6 +35,11 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.25.76",
     "zustand": "^5.0.3"
+  },
+  "overrides": {
+    "@pdfme/generator": {
+      "@pdfme/common": "$@pdfme/common"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
