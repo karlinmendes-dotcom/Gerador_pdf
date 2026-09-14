@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore, type Document } from "@/lib/store";
@@ -14,10 +14,15 @@ import { Footer } from "@/components/Footer";
 import { AuthModal } from "@/components/AuthModal";
 import { ReceiptBook } from "@/components/ReceiptBook";
 import { GovBrGuide } from "@/components/GovBrGuide";
+import { QrCodeGenerator } from "@/components/QrCodeGenerator";
+import { ProfileMenu } from "@/components/ProfileMenu";
+import { AnimatedDownloadButton } from "@/components/AnimatedDownloadButton";
+import { DocumentCardSkeleton, StatsSkeleton } from "@/components/Skeleton";
+import { track } from "@/lib/telemetry";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Plus, BookOpen, LayoutDashboard, Menu, LogOut, LogIn } from "lucide-react";
+import { FileText, Download, Trash2, Plus, BookOpen, LayoutDashboard, Menu, LogOut, LogIn, Wallet } from "lucide-react";
 
-type View = "dashboard" | "new" | "receipts";
+type View = "dashboard" | "new" | "receipts" | "pix";
 
 export default function DashboardPage() {
   const nav = useNavigate();
@@ -37,14 +42,27 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState<string | undefined>(undefined);
+  const [qrOpen, setQrOpen] = useState(false);
   const [pendingForm, setPendingForm] = useState<{ type: string; data: Record<string, string> } | null>(null);
   const [toast, setToast] = useState("");
 
+  const hydrating = useStore((s) => s.hydrating);
+  const offline = useStore((s) => s.offline);
+
   const total = userDocs.length;
   const done = userDocs.filter((d) => d.status === "paid").length;
+  const paidDocs = userDocs.filter((d) => d.status === "paid" && d.paymentId);
   const installmentDocs = userDocs.filter((d) =>
     ["compra-venda-veiculo", "contrato-aluguel-simples", "recibo-pagamento"].includes(d.documentType)
   );
+
+  /** Gate de autenticação: sem sessão, a modal de login abre automaticamente. */
+  useEffect(() => {
+    if (!user) {
+      setAuthReason("Entre ou crie sua conta grátis para acessar o dashboard.");
+      setAuthOpen(true);
+    }
+  }, [user]);
 
   /**
    * Detecta o número de parcelas a partir dos campos do schema:
@@ -163,10 +181,12 @@ export default function DashboardPage() {
     const { type, data } = pendingForm;
     const doc = persistDocument(type, data, "paid", paymentId);
     setPendingForm(null);
+    track("pix_paid", { type });
 
     setTimeout(async () => {
       try {
         await downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
+        track("pdf_generated", { type: doc.documentType });
         showToast("Pagamento aprovado · PDF baixado ✅");
       } catch {
         showToast("Documento salvo como Pago — baixe pelo histórico.");
@@ -210,6 +230,7 @@ export default function DashboardPage() {
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "new", label: "Novo Documento", icon: Plus },
           { id: "receipts", label: "Livro de Recibos", icon: BookOpen },
+          { id: "pix", label: "Histórico de Pix", icon: Wallet },
         ].map((item) => (
           <button
             key={item.id}
@@ -295,16 +316,16 @@ export default function DashboardPage() {
                 {view === "dashboard" && "Meus Documentos"}
                 {view === "new" && "Novo Documento"}
                 {view === "receipts" && "Livro de Recibos"}
+                {view === "pix" && "Histórico de Pix"}
               </h1>
             </div>
             <div className="flex items-center gap-2">
               {user ? (
-                <div className="hidden items-center gap-2 sm:flex">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-cyan-500 text-[10px] font-bold text-white">
-                    {user.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <span className="max-w-[120px] truncate text-xs text-slate-300">{user.name}</span>
-                </div>
+                <ProfileMenu
+                  compact
+                  onOpenQrGenerator={() => setQrOpen(true)}
+                  onNavigate={(v) => setView(v === "pix" ? "pix" : "dashboard")}
+                />
               ) : (
                 <Button size="sm" variant="outline" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
                   <LogIn className="h-3.5 w-3.5 mr-1.5" /> Entrar
@@ -343,25 +364,37 @@ export default function DashboardPage() {
                   </Card>
                 )}
 
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Total", value: total, icon: "📄" },
-                    { label: "Concluídos", value: done, icon: "✅" },
-                    { label: "Rascunhos", value: total - done, icon: "📝" },
-                  ].map((s, i) => (
-                    <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                      <Card className="p-4 transition-all hover:border-purple-500/30 hover:shadow-[0_0_24px_-8px_rgba(139,92,246,0.4)]">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{s.icon}</span>
-                          <div>
-                            <p className="text-2xl font-bold leading-none">{s.value}</p>
-                            <p className="mt-1 text-[11px] text-slate-400">{s.label}</p>
+                {offline && !hydrating && (
+                  <Card className="border-amber-500/25 bg-amber-500/5 p-3">
+                    <p className="text-xs text-amber-300/90">
+                      🧪 Modo local — sem conexão com o banco. Seus dados ficam salvos neste dispositivo.
+                    </p>
+                  </Card>
+                )}
+
+                {hydrating ? (
+                  <StatsSkeleton />
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Total", value: total, icon: "📄" },
+                      { label: "Concluídos", value: done, icon: "✅" },
+                      { label: "Rascunhos", value: total - done, icon: "📝" },
+                    ].map((s, i) => (
+                      <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+                        <Card className="border-white/10 bg-zinc-900/60 shadow-xl shadow-black/20 backdrop-blur-xl p-4 transition-all hover:border-purple-500/30 hover:shadow-[0_0_24px_-8px_rgba(139,92,246,0.4)]">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{s.icon}</span>
+                            <div>
+                              <p className="text-2xl font-bold leading-none">{s.value}</p>
+                              <p className="mt-1 text-[11px] text-slate-400">{s.label}</p>
+                            </div>
                           </div>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
 
                 <Card>
                   <CardHeader className="pb-3">
@@ -369,7 +402,13 @@ export default function DashboardPage() {
                     <CardDescription>Rascunhos grátis · PDF oficial após Pix</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2.5">
-                    {userDocs.length === 0 ? (
+                    {hydrating ? (
+                      <>
+                        <DocumentCardSkeleton />
+                        <DocumentCardSkeleton />
+                        <DocumentCardSkeleton />
+                      </>
+                    ) : userDocs.length === 0 ? (
                       <div className="py-12 text-center">
                         <FileText className="mx-auto mb-4 h-12 w-12 text-slate-600" />
                         <p className="mb-4 text-sm text-slate-400">Nenhum documento ainda.</p>
@@ -404,9 +443,13 @@ export default function DashboardPage() {
                             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setReceiptsDoc(doc)} title="Livro de Recibos">
                               <BookOpen className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleDownload(doc)} title={doc.status === "paid" ? "Baixar PDF" : "Pagar e baixar"}>
+                            <AnimatedDownloadButton
+                              className="h-9 w-9"
+                              title={doc.status === "paid" ? "Baixar PDF" : "Pagar e baixar"}
+                              onDownload={() => handleDownload(doc)}
+                            >
                               <Download className="h-4 w-4" />
-                            </Button>
+                            </AnimatedDownloadButton>
                             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeDocument(doc._id)} title="Excluir">
                               <Trash2 className="h-4 w-4 text-red-400/80" />
                             </Button>
@@ -475,6 +518,58 @@ export default function DashboardPage() {
               </motion.div>
             )}
 
+            {/* ─── VIEW: Histórico de Pix ─────────────────────── */}
+            {view === "pix" && (
+              <motion.div
+                key="pix"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-white/10 bg-zinc-900/60 shadow-xl shadow-black/20 backdrop-blur-xl">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Pagamentos via Pix (Mercado Pago)</CardTitle>
+                    <CardDescription>Todos os documentos liberados após confirmação do pagamento</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2.5">
+                    {paidDocs.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-slate-400">Nenhum pagamento registrado ainda.</p>
+                    ) : (
+                      paidDocs.map((doc, i) => (
+                        <motion.div
+                          key={doc._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3.5"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-lg ring-1 ring-emerald-500/25">
+                              💠
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="truncate text-sm font-medium">{doc.title}</h3>
+                              <p className="truncate text-[11px] text-slate-500">
+                                {new Date(doc.updatedAt).toLocaleString("pt-BR")}
+                                {doc.paymentId ? ` · MP ${doc.paymentId}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Badge variant="success">Pago</Badge>
+                            <Badge variant="secondary" className="hidden sm:inline-flex">
+                              R$ {getPrice(doc.documentType).toFixed(2).replace(".", ",")}
+                            </Badge>
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {/* ─── VIEW: Livro de Recibos ──────────────────────── */}
             {view === "receipts" && (
               <motion.div
@@ -508,11 +603,12 @@ export default function DashboardPage() {
 
       {/* Bottom nav (mobile) */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#0b0f17]/90 backdrop-blur-xl md:hidden">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-4">
           {[
             { id: "dashboard", label: "Início", icon: LayoutDashboard },
             { id: "new", label: "Novo", icon: Plus },
             { id: "receipts", label: "Recibos", icon: BookOpen },
+            { id: "pix", label: "Pix", icon: Wallet },
           ].map((item) => (
             <button
               key={item.id}
@@ -590,6 +686,9 @@ export default function DashboardPage() {
           onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
+
+      {/* Gerador de QR Code */}
+      <QrCodeGenerator open={qrOpen} onOpenChange={setQrOpen} />
 
       <Footer />
     </div>
