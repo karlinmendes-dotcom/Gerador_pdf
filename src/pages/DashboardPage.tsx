@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore, type Document } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { DOC_TYPES, getDocType, getPrice, downloadPdf } from "@/lib/pdf-engine";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { DocumentForm } from "@/components/DocumentForm";
 import { AiTextInput } from "@/components/AiTextInput";
 import { PaymentModal } from "@/components/PaymentModal";
+import { AuthModal } from "@/components/AuthModal";
 import { ReceiptBook } from "@/components/ReceiptBook";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Plus, BookOpen, LayoutDashboard, Menu, X } from "lucide-react";
+import { FileText, Download, Trash2, Plus, BookOpen, LayoutDashboard, Menu, LogOut, LogIn } from "lucide-react";
 
 type View = "dashboard" | "new" | "receipts";
 
@@ -23,17 +25,22 @@ export default function DashboardPage() {
   const addReceipts = useStore((s) => s.addReceipts);
   const userDocs = useStore((s) => s.getUserDocuments());
 
+  const user = useAuth((s) => s.user);
+  const signOut = useAuth((s) => s.signOut);
+
   const [view, setView] = useState<View>("dashboard");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [payDoc, setPayDoc] = useState<string | null>(null);
   const [receiptsDoc, setReceiptsDoc] = useState<Document | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authReason, setAuthReason] = useState<string | undefined>(undefined);
+  const [pendingForm, setPendingForm] = useState<{ type: string; data: Record<string, string> } | null>(null);
+  const [toast, setToast] = useState("");
 
   const total = userDocs.length;
   const done = userDocs.filter((d) => d.status === "paid").length;
-  const pending = total - done;
 
   /** Detecta parcelamento no campo forma_pagamento (ex: "12x", "12 parcelas"). */
   const detectInstallments = (data: Record<string, string>): number => {
@@ -44,63 +51,115 @@ export default function DashboardPage() {
     return Number.isFinite(n) ? Math.min(Math.max(n, 1), 60) : 1;
   };
 
-  const handleFormSubmit = (data: Record<string, string>) => {
-    if (!selectedType) return;
-    setLoading(true);
-    setTimeout(() => {
-      const doc = addDocument({
-        userId: useStore.getState().userId,
-        documentType: selectedType,
-        title: `${getDocType(selectedType)?.name ?? selectedType} — ${new Date().toLocaleDateString("pt-BR")}`,
-        dataJson: JSON.stringify(data),
-        status: "draft",
-      });
+  const persistDocument = (
+    type: string,
+    data: Record<string, string>,
+    status: "draft" | "paid",
+    paymentId?: string
+  ): Document => {
+    const doc = addDocument({
+      userId: useStore.getState().userId,
+      documentType: type,
+      title: `${getDocType(type)?.name ?? type} — ${new Date().toLocaleDateString("pt-BR")}`,
+      dataJson: JSON.stringify(data),
+      status,
+      paymentId,
+    });
 
-      const n = detectInstallments(data);
-      if (n > 1) {
-        const value = Number((data.valor_total ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
-        const perInstallment = n > 0 ? value / n : 0;
-        const today = new Date();
-        addReceipts(
-          Array.from({ length: n }, (_, i) => {
-            const due = new Date(today.getFullYear(), today.getMonth() + i + 1, 10);
-            return {
-              documentId: doc._id,
-              installmentNumber: i + 1,
-              amount: perInstallment,
-              dueDate: due.toLocaleDateString("pt-BR"),
-              status: "pending" as const,
-            };
-          })
-        );
-      }
-
-      setLoading(false);
-      setView("dashboard");
-      setSelectedType(null);
-    }, 400);
+    const n = detectInstallments(data);
+    if (n > 1) {
+      const value = Number((data.valor_total ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
+      const per = n > 0 ? value / n : 0;
+      const today = new Date();
+      addReceipts(
+        Array.from({ length: n }, (_, i) => {
+          const due = new Date(today.getFullYear(), today.getMonth() + i + 1, 10);
+          return {
+            documentId: doc._id,
+            installmentNumber: i + 1,
+            amount: per,
+            dueDate: due.toLocaleDateString("pt-BR"),
+            status: "pending" as const,
+          };
+        })
+      );
+    }
+    return doc;
   };
 
-  const handleAiGenerated = (data: Record<string, string>) => handleFormSubmit(data);
+  // ─── Fluxo: gerar oficial (paywall) ─────────────────────────────
+
+  const handleOfficialSubmit = (data: Record<string, string>) => {
+    if (!selectedType) return;
+
+    // Freemium: exige login apenas para gerar o documento final
+    if (!user) {
+      setPendingForm({ type: selectedType, data });
+      setAuthReason("Crie sua conta grátis para salvar e gerar o PDF oficial.");
+      setAuthOpen(true);
+      return;
+    }
+
+    setPendingForm({ type: selectedType, data });
+    setPayDoc("__form__");
+  };
+
+  const handleAiGenerated = (data: Record<string, string>) => {
+    // IA preenche os campos → segue o mesmo fluxo de paywall
+    if (!user) {
+      setPendingForm({ type: selectedType ?? "", data });
+      setAuthReason("Crie sua conta grátis para salvar e gerar o PDF oficial.");
+      setAuthOpen(true);
+      return;
+    }
+    setPendingForm({ type: selectedType ?? "", data });
+    setPayDoc("__form__");
+  };
+
+  const handleSaveDraft = (data: Record<string, string>) => {
+    if (!selectedType) return;
+    // Rascunho é grátis e não exige login (fica no dispositivo)
+    persistDocument(selectedType, data, "draft");
+    showToast("Rascunho salvo com sucesso! 💾");
+    setSelectedType(null);
+    setView("dashboard");
+  };
+
+  // ─── Fluxo: pagamento confirmado → PDF ──────────────────────────
+
+  const handlePaymentConfirmed = async (paymentId: string) => {
+    if (!pendingForm) return;
+    const { type, data } = pendingForm;
+    const doc = persistDocument(type, data, "paid", paymentId);
+    setPendingForm(null);
+
+    setTimeout(async () => {
+      try {
+        await downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
+        showToast("Pagamento aprovado · PDF baixado ✅");
+      } catch {
+        showToast("Documento salvo como Pago — baixe pelo histórico.");
+      }
+    }, 500);
+  };
 
   const handleDownload = (doc: Document) => {
     if (doc.status !== "paid") {
-      setPayDoc(doc._id); // paywall — cobra só no download
+      // Paywall: rascunho precisa pagar antes de baixar
+      try {
+        setPendingForm({ type: doc.documentType, data: JSON.parse(doc.dataJson) });
+        setPayDoc(doc._id);
+      } catch {
+        showToast("Rascunho corrompido — exclua e crie novamente.");
+      }
       return;
     }
     downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
   };
 
-  const handlePaymentConfirmed = (paymentId: string) => {
-    if (payDoc) {
-      updateDocument(payDoc, { status: "paid", paymentId });
-      const doc = useStore.getState().getDocument(payDoc);
-      if (doc) {
-        setTimeout(() => {
-          downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
-        }, 450);
-      }
-    }
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3200);
   };
 
   const sidebar = (
@@ -123,7 +182,7 @@ export default function DashboardPage() {
         ].map((item) => (
           <button
             key={item.id}
-            onClick={() => { setView(item.id as View); setSidebarOpen(false); setMobileMenuOpen(false); }}
+            onClick={() => { setView(item.id as View); setSidebarOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
               view === item.id
                 ? "bg-gradient-to-r from-indigo-600/25 to-purple-600/15 text-white ring-1 ring-purple-500/30"
@@ -136,7 +195,27 @@ export default function DashboardPage() {
         ))}
       </nav>
 
-      <div className="border-t border-white/5 p-4">
+      <div className="space-y-2 border-t border-white/5 p-4">
+        {user ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-cyan-500 text-[10px] font-bold text-white">
+                {user.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-xs font-medium">{user.name}</p>
+                <p className="truncate text-[10px] text-slate-500">{user.email}</p>
+              </div>
+            </div>
+            <button onClick={signOut} className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-slate-500 transition-colors hover:text-red-400">
+              <LogOut className="h-3.5 w-3.5" /> Sair da conta
+            </button>
+          </div>
+        ) : (
+          <Button size="sm" variant="outline" className="w-full" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
+            <LogIn className="h-3.5 w-3.5 mr-1.5" /> Entrar / Cadastrar
+          </Button>
+        )}
         <button onClick={() => nav("/")} className="text-xs text-slate-500 transition-colors hover:text-slate-300">
           ← Voltar ao site
         </button>
@@ -146,10 +225,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      {/* ─── Sidebar desktop ────────────────────────────────────── */}
+      {/* Sidebar desktop */}
       <div className="fixed inset-y-0 left-0 z-40 hidden md:block">{sidebar}</div>
 
-      {/* ─── Sidebar mobile (drawer) ────────────────────────────── */}
+      {/* Drawer mobile */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -173,7 +252,6 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* ─── Conteúdo ───────────────────────────────────────────── */}
       <div className="md:pl-64">
         {/* Topbar */}
         <header className="sticky top-0 z-30 border-b border-white/5 bg-background/70 backdrop-blur-xl">
@@ -188,9 +266,23 @@ export default function DashboardPage() {
                 {view === "receipts" && "Livro de Recibos"}
               </h1>
             </div>
-            <Button size="sm" onClick={() => setView("new")} className="hidden sm:inline-flex">
-              <Plus className="h-4 w-4 mr-1.5" /> Novo
-            </Button>
+            <div className="flex items-center gap-2">
+              {user ? (
+                <div className="hidden items-center gap-2 sm:flex">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-cyan-500 text-[10px] font-bold text-white">
+                    {user.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span className="max-w-[120px] truncate text-xs text-slate-300">{user.name}</span>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
+                  <LogIn className="h-3.5 w-3.5 mr-1.5" /> Entrar
+                </Button>
+              )}
+              <Button size="sm" onClick={() => setView("new")} className="hidden sm:inline-flex">
+                <Plus className="h-4 w-4 mr-1.5" /> Novo
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -206,12 +298,25 @@ export default function DashboardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                {/* Stats */}
+                {!user && (
+                  <Card className="border-purple-500/25 bg-gradient-to-r from-indigo-600/10 to-purple-600/5 p-4">
+                    <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                      <div>
+                        <p className="text-sm font-medium">Você está no modo visitante</p>
+                        <p className="text-xs text-slate-400">Entre para salvar rascunhos na conta e gerar PDFs oficiais.</p>
+                      </div>
+                      <Button size="sm" onClick={() => { setAuthReason("Entre para salvar seus documentos na conta."); setAuthOpen(true); }}>
+                        Criar conta grátis
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: "Total", value: total, icon: "📄" },
                     { label: "Concluídos", value: done, icon: "✅" },
-                    { label: "Pendentes", value: pending, icon: "⏳" },
+                    { label: "Rascunhos", value: total - done, icon: "📝" },
                   ].map((s, i) => (
                     <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
                       <Card className="p-4 transition-all hover:border-purple-500/30 hover:shadow-[0_0_24px_-8px_rgba(139,92,246,0.4)]">
@@ -227,11 +332,10 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                {/* Document list */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Histórico</CardTitle>
-                    <CardDescription>Formulário → gerar → pagar no download → PDF</CardDescription>
+                    <CardDescription>Rascunhos grátis · PDF oficial após Pix</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2.5">
                     {userDocs.length === 0 ? (
@@ -248,8 +352,8 @@ export default function DashboardPage() {
                           key={doc._id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.04 }}
-                          className="group flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3.5 transition-all hover:border-purple-500/30 hover:bg-white/[0.05] hover:shadow-[0_0_24px_-10px_rgba(139,92,246,0.5)] sm:p-4"
+                          transition={{ delay: Math.min(i * 0.04, 0.4) }}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3.5 transition-all hover:border-purple-500/30 hover:bg-white/[0.05] hover:shadow-[0_0_24px_-10px_rgba(139,92,246,0.5)] sm:p-4"
                         >
                           <div className="flex min-w-0 items-center gap-3">
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xl ring-1 ring-white/10">
@@ -264,12 +368,12 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex shrink-0 items-center gap-1.5">
                             <Badge variant={doc.status === "paid" ? "success" : "warning"} className="hidden sm:inline-flex">
-                              {doc.status === "paid" ? "Concluído" : "Rascunho"}
+                              {doc.status === "paid" ? "Pago" : "Rascunho"}
                             </Badge>
                             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setReceiptsDoc(doc)} title="Livro de Recibos">
                               <BookOpen className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleDownload(doc)} title="Baixar PDF">
+                            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleDownload(doc)} title={doc.status === "paid" ? "Baixar PDF" : "Pagar e baixar"}>
                               <Download className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeDocument(doc._id)} title="Excluir">
@@ -309,7 +413,7 @@ export default function DashboardPage() {
                           <CardContent>
                             <CardDescription className="text-xs">{d.description}</CardDescription>
                             <Badge variant="success" className="mt-3 text-[10px]">
-                              Pix R$ {getPrice(d.id).toFixed(2).replace(".", ",")}
+                              PDF R$ {getPrice(d.id).toFixed(2).replace(".", ",")}
                             </Badge>
                           </CardContent>
                         </Card>
@@ -319,14 +423,22 @@ export default function DashboardPage() {
                 ) : (
                   <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }} className="space-y-6">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedType(null)}>← Trocar tipo</Button>
-                    <AiTextInput documentType={selectedType} onGenerated={handleAiGenerated} onError={(e) => alert(e)} />
+
+                    <AiTextInput documentType={selectedType} onGenerated={handleAiGenerated} onError={(e) => showToast(e)} fillOnly />
+
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10" /></div>
                       <div className="relative flex justify-center">
                         <span className="bg-background px-3 text-[11px] uppercase tracking-widest text-slate-500">ou preencha manualmente</span>
                       </div>
                     </div>
-                    <DocumentForm documentType={selectedType} onSubmit={handleFormSubmit} isLoading={loading} submitLabel="💾 Salvar na Conta (grátis)" />
+
+                    <DocumentForm
+                      documentType={selectedType}
+                      onSubmit={handleOfficialSubmit}
+                      onSaveDraft={handleSaveDraft}
+                      isLoading={loading}
+                    />
                   </motion.div>
                 )}
               </motion.div>
@@ -340,37 +452,21 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6"
               >
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Selecione um contrato</CardTitle>
-                    <CardDescription>Acompanhe parcelas e envie comprovantes Pix</CardDescription>
+                    <CardTitle className="text-base">Contratos parcelados</CardTitle>
+                    <CardDescription>Envie o comprovante Pix de cada parcela</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2.5">
                     {userDocs.filter((d) => d.documentType === "compra-venda-veiculo").length === 0 ? (
                       <p className="py-8 text-center text-sm text-slate-400">
-                        Nenhum contrato parcelado ainda. Crie um contrato informando "12x" na forma de pagamento.
+                        Nenhum contrato ainda. Crie um contrato informando "12x" na forma de pagamento.
                       </p>
                     ) : (
                       userDocs
                         .filter((d) => d.documentType === "compra-venda-veiculo")
-                        .map((doc) => (
-                          <button
-                            key={doc._id}
-                            onClick={() => setReceiptsDoc(doc)}
-                            className="flex w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left transition-all hover:border-purple-500/30 hover:bg-white/[0.05]"
-                          >
-                            <span className="flex items-center gap-3">
-                              <span className="text-xl">🚗</span>
-                              <span>
-                                <span className="block text-sm font-medium">{doc.title}</span>
-                                <span className="block text-xs text-slate-400">{new Date(doc.createdAt).toLocaleDateString("pt-BR")}</span>
-                              </span>
-                            </span>
-                            <Badge variant="secondary">Abrir →</Badge>
-                          </button>
-                        ))
+                        .map((doc) => <ReceiptCard key={doc._id} doc={doc} onOpen={() => setReceiptsDoc(doc)} />)
                     )}
                   </CardContent>
                 </Card>
@@ -380,7 +476,7 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* ─── Bottom nav (mobile) ────────────────────────────────── */}
+      {/* Bottom nav (mobile) */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#0b0f17]/90 backdrop-blur-xl md:hidden">
         <div className="grid grid-cols-3">
           {[
@@ -402,28 +498,97 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* ─── Dialogs ────────────────────────────────────────────── */}
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-300 backdrop-blur-xl md:bottom-8"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Livro de Recibos dialog */}
       <Dialog open={!!receiptsDoc} onOpenChange={() => setReceiptsDoc(null)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-white/10 bg-[#0d1220] sm:rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span>📒</span> {receiptsDoc?.title}
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><span>📒</span> {receiptsDoc?.title}</DialogTitle>
             <DialogDescription>Livro de Recibos — progresso das parcelas</DialogDescription>
           </DialogHeader>
           {receiptsDoc && <ReceiptBook documentId={receiptsDoc._id} />}
         </DialogContent>
       </Dialog>
 
+      {/* Auth modal */}
+      <AuthModal
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        reason={authReason}
+        onSuccess={() => {
+          // Após login, retoma o fluxo pendente (paywall)
+          if (pendingForm) {
+            setTimeout(() => setPayDoc("__form__"), 250);
+          }
+        }}
+      />
+
+      {/* Paywall PIX */}
       {payDoc && (
         <PaymentModal
           open={!!payDoc}
           onOpenChange={(o) => { if (!o) setPayDoc(null); }}
-          documentId={payDoc}
-          amount={getPrice(useStore.getState().getDocument(payDoc)?.documentType ?? "")}
+          documentId={payDoc === "__form__" ? "form" : payDoc}
+          amount={
+            payDoc === "__form__"
+              ? getPrice(pendingForm?.type ?? "")
+              : getPrice(useStore.getState().getDocument(payDoc)?.documentType ?? "")
+          }
+          title={
+            payDoc === "__form__"
+              ? getDocType(pendingForm?.type ?? "")?.name
+              : undefined
+          }
           onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
     </div>
+  );
+}
+
+/** Card de contrato parcelado com resumo do progresso. */
+function ReceiptCard({ doc, onOpen }: { doc: Document; onOpen: () => void }) {
+  const receipts = useStore((s) => s.getReceiptsForDocument(doc._id));
+  const paid = receipts.filter((r) => r.status === "paid").length;
+  const total = receipts.length;
+  const progress = total > 0 ? (paid / total) * 100 : 0;
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      onClick={onOpen}
+      className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left transition-all hover:border-purple-500/30 hover:bg-white/[0.05]"
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xl ring-1 ring-white/10">🚗</span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium">{doc.title}</span>
+          <span className="mt-1 block h-1.5 w-32 overflow-hidden rounded-full bg-white/[0.08]">
+            <motion.span
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.7 }}
+              className="block h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400"
+            />
+          </span>
+          <span className="mt-1 block text-[10px] text-slate-400">{paid} de {total} parcelas pagas</span>
+        </span>
+      </span>
+      <Badge variant={paid === total ? "success" : "warning"}>Abrir →</Badge>
+    </motion.button>
   );
 }

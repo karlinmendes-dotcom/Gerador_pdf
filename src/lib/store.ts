@@ -33,6 +33,8 @@ interface StoreState {
   receipts: Receipt[];
   userId: string;
 
+  /** Liga a store ao usuário autenticado (chamado por lib/auth.ts). */
+  syncUser: (id: string, email: string) => void;
   addDocument: (doc: Omit<Document, "_id" | "createdAt" | "updatedAt">) => Document;
   updateDocument: (id: string, updates: Partial<Document>) => void;
   removeDocument: (id: string) => void;
@@ -87,6 +89,8 @@ export const useStore = create<StoreState>((set, get) => ({
   documents: load<Document[]>("pdfforge:documents", []),
   receipts: load<Receipt[]>("pdfforge:receipts", []),
   userId: LOCAL_USER,
+
+  syncUser: (id, _email) => set({ userId: id }),
 
   addDocument: (doc) => {
     const now = Date.now();

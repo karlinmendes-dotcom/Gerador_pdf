@@ -1,23 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
 import { getDocType } from "@/lib/pdf-engine";
-import { createPixCheckout, checkPaymentStatus, type PixCheckout } from "@/lib/payments";
+import { createPixCheckout, checkPaymentStatus, MOCK_QR_DATA_URI, type PixCheckout } from "@/lib/payments";
 
 interface PaymentModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (open: boolean) => boolean | void;
   documentId: string;
   amount: number;
   title?: string;
+  /** Disparado quando o pagamento é aprovado — recebe o paymentId. */
   onPaymentConfirmed: (paymentId: string) => void;
 }
 
 type Flow = "idle" | "creating" | "waiting" | "approved" | "error";
 
-export function PaymentModal({ open, onOpenChange, documentId, amount, title: titleProp, onPaymentConfirmed }: PaymentModalProps) {
+export function PaymentModal({
+  open,
+  onOpenChange,
+  documentId,
+  amount,
+  title: titleProp,
+  onPaymentConfirmed,
+}: PaymentModalProps) {
   const { getDocument, updateDocument } = useStore();
   const doc = getDocument(documentId);
   const docType = doc ? getDocType(doc.documentType) : undefined;
@@ -30,7 +39,6 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
   const [polls, setPolls] = useState(0);
 
   const createCharge = useCallback(async () => {
-    if (!doc) return;
     setFlow("creating");
     setError("");
     try {
@@ -40,25 +48,23 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
         title,
       });
       setPix(checkout);
-      updateDocument(doc._id, { paymentId: String(checkout.paymentId) });
+      if (doc) updateDocument(doc._id, { paymentId: String(checkout.paymentId) });
       setFlow("waiting");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar cobrança");
       setFlow("error");
     }
-  }, [doc, docType, amount, updateDocument]);
+  }, [doc, documentId, amount, title, updateDocument]);
 
-  // Poll /api/status until approved (max ~2 min)
+  // Poll until approved (mock: aprova automaticamente após ~8s)
   useEffect(() => {
     if (flow !== "waiting" || !pix) return;
 
     const timeout = setTimeout(() => {
       checkPaymentStatus(pix.paymentId)
-        .then((status) => {
+        .then(({ status }) => {
           if (status === "approved") {
-            if (doc) {
-              updateDocument(doc._id, { status: "paid", paymentId: String(pix.paymentId) });
-            }
+            if (doc) updateDocument(doc._id, { status: "paid", paymentId: String(pix.paymentId) });
             setFlow("approved");
             onPaymentConfirmed(String(pix.paymentId));
           } else if (status === "rejected" || status === "cancelled") {
@@ -66,7 +72,7 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
             setFlow("error");
           } else {
             setPolls((p) => {
-              if (p >= 40) {
+              if (p >= 60) {
                 setError("Tempo esgotado. Gere um novo PIX.");
                 setFlow("error");
               }
@@ -74,13 +80,11 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
             });
           }
         })
-        .catch(() => {
-          setPolls((p) => p + 1);
-        });
-    }, 3000);
+        .catch(() => setPolls((p) => p + 1));
+    }, 2500);
 
     return () => clearTimeout(timeout);
-  }, [flow, pix, polls, doc?._id, updateDocument, onPaymentConfirmed]);
+  }, [flow, pix, polls, doc, updateDocument, onPaymentConfirmed]);
 
   const handleCopy = () => {
     if (pix?.qrCode) {
@@ -103,19 +107,23 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md border-white/10 bg-[#0d1220] sm:rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Pagamento via PIX</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 text-sm">⚡</span>
+            Pagamento via PIX
+          </DialogTitle>
           <DialogDescription>
-            {title} — R$ {amount.toFixed(2).replace(".", ",")}
+            {title} — <span className="font-bold text-white">R$ {amount.toFixed(2).replace(".", ",")}</span>
           </DialogDescription>
         </DialogHeader>
 
         {flow === "idle" && (
-          <div className="space-y-4 text-center py-4">
+          <div className="space-y-4 py-4 text-center">
             <div className="text-4xl">💳</div>
-            <p className="text-sm text-muted-foreground">
-              Pagamento único de <strong>R$ {amount.toFixed(2)}</strong> via PIX (Mercado Pago).
+            <p className="text-sm text-slate-400">
+              Pagamento único de <span className="font-bold text-white">R$ {amount.toFixed(2).replace(".", ",")}</span> via PIX.
+              O PDF é liberado imediatamente após a confirmação.
             </p>
             <Button onClick={createCharge} size="lg" className="w-full">
               Gerar QR Code PIX
@@ -124,34 +132,34 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
         )}
 
         {flow === "creating" && (
-          <div className="py-8 text-center">
-            <svg className="animate-spin h-10 w-10 mx-auto text-primary" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <p className="mt-3 text-sm text-muted-foreground">Gerando cobrança PIX...</p>
+          <div className="py-10 text-center">
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="mx-auto h-10 w-10 rounded-full border-2 border-purple-500/30 border-t-purple-500" />
+            <p className="mt-4 text-sm text-slate-400">Gerando cobrança PIX...</p>
           </div>
         )}
 
         {flow === "waiting" && pix && (
           <div className="space-y-4">
             <div className="flex justify-center">
-              {pix.qrCodeBase64 ? (
-                <img src={`data:image/png;base64,${pix.qrCodeBase64}`} alt="QR Code PIX" className="w-48 h-48 rounded-lg border bg-white p-2" />
-              ) : (
-                <div className="w-48 h-48 rounded-lg border-2 border-dashed flex items-center justify-center text-center">
-                  <div>
-                    <div className="text-4xl">📱</div>
-                    <p className="mt-2 text-xs text-muted-foreground">Use o Pix Copia e Cola<br />no app do seu banco</p>
-                  </div>
-                </div>
-              )}
+              <motion.img
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                src={pix.qrCodeBase64 ? `data:image/png;base64,${pix.qrCodeBase64}` : MOCK_QR_DATA_URI}
+                alt="QR Code PIX"
+                className="h-48 w-48 rounded-xl bg-white p-2 ring-1 ring-white/20"
+              />
             </div>
 
+            {pix.mock && (
+              <p className="text-center text-[11px] text-amber-400/80">
+                🧪 Modo de teste local — o pagamento é aprovado automaticamente em ~8s
+              </p>
+            )}
+
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">PIX Copia e Cola</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">PIX Copia e Cola</p>
               <div className="flex gap-2">
-                <div className="flex-1 bg-muted rounded-md p-3 text-xs font-mono break-all max-h-20 overflow-y-auto">
+                <div className="max-h-20 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 font-mono text-[10px] leading-relaxed text-slate-300">
                   {pix.qrCode ?? "—"}
                 </div>
                 <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0">
@@ -160,9 +168,13 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
               </div>
             </div>
 
-            <div className="flex items-center gap-2 justify-center py-2">
-              <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse" />
-              <span className="text-sm text-muted-foreground">Aguardando confirmação do pagamento...</span>
+            <div className="flex items-center justify-center gap-2 py-2">
+              <motion.span
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ repeat: Infinity, duration: 1.4 }}
+                className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)]"
+              />
+              <span className="text-sm text-slate-400">Aguardando confirmação do pagamento...</span>
             </div>
 
             <Button variant="ghost" size="sm" className="w-full" onClick={close}>
@@ -172,18 +184,27 @@ export function PaymentModal({ open, onOpenChange, documentId, amount, title: ti
         )}
 
         {flow === "approved" && (
-          <div className="space-y-4 text-center py-4">
-            <div className="text-5xl">✅</div>
-            <h3 className="text-lg font-bold text-emerald-600">Pagamento Aprovado!</h3>
-            <Badge variant="success">PIX confirmado</Badge>
-            <Button onClick={close} className="w-full">Baixar Documento</Button>
-          </div>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4 py-4 text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.1 }}
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-4xl ring-2 ring-emerald-500/40"
+            >
+              ✅
+            </motion.div>
+            <h3 className="text-lg font-bold text-emerald-400">Pagamento Aprovado!</h3>
+            <Badge variant="success">PIX confirmado · PDF liberado</Badge>
+            <Button onClick={close} className="w-full">
+              📥 Baixar Documento
+            </Button>
+          </motion.div>
         )}
 
         {flow === "error" && (
-          <div className="space-y-4 text-center py-4">
+          <div className="space-y-4 py-4 text-center">
             <div className="text-5xl">⚠️</div>
-            <p className="text-sm text-destructive">{error}</p>
+            <p className="text-sm text-red-400">{error}</p>
             <Button onClick={createCharge} className="w-full">🔄 Tentar novamente</Button>
           </div>
         )}

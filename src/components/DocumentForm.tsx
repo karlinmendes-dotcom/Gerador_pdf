@@ -8,14 +8,27 @@ import { Label } from "@/components/ui/label";
 
 interface DocumentFormProps {
   documentType: string;
+  /** Chamado quando o usuário clica em "Gerar Documento Oficial (R$ X)". */
   onSubmit: (data: Record<string, string>) => void;
+  /** Chamado quando o usuário salva apenas o rascunho (grátis). */
+  onSaveDraft?: (data: Record<string, string>) => void;
   isLoading?: boolean;
   submitLabel?: string;
+  /** Esconde o botão de rascunho (ex: quick generate na landing). */
+  hideDraft?: boolean;
 }
 
-export function DocumentForm({ documentType, onSubmit, isLoading, submitLabel }: DocumentFormProps) {
+export function DocumentForm({
+  documentType,
+  onSubmit,
+  onSaveDraft,
+  isLoading,
+  submitLabel,
+  hideDraft,
+}: DocumentFormProps) {
   const fields = getFields(documentType);
   const docType = getDocType(documentType);
+  const price = getPrice(documentType);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -35,6 +48,15 @@ export function DocumentForm({ documentType, onSubmit, isLoading, submitLabel }:
     onSubmit(formData);
   };
 
+  const handleSaveDraft = () => {
+    if (!onSaveDraft) return;
+    if (!isValid) {
+      setTouched(Object.fromEntries(fields.map((f) => [f.key, true])));
+      return;
+    }
+    onSaveDraft(formData);
+  };
+
   return (
     <Card className="border-white/10 bg-white/[0.03]">
       <CardHeader>
@@ -45,12 +67,12 @@ export function DocumentForm({ documentType, onSubmit, isLoading, submitLabel }:
           <span>
             {docType?.name ?? documentType}
             <span className="mt-0.5 block text-xs font-normal text-slate-400">
-              Preenchimento gratuito · Pix {getPrice(documentType).toFixed(2).replace(".", ",")} só no download
+              Preenchimento gratuito · PDF oficial por R$ {price.toFixed(2).replace(".", ",")}
             </span>
           </span>
         </CardTitle>
         <CardDescription className="pt-1">
-          Preencha os campos abaixo. Campos com <span className="text-purple-400">*</span> são obrigatórios.
+          Campos com <span className="text-purple-400">*</span> são obrigatórios. Rascunho salvo é grátis; o Pix é só no PDF oficial.
         </CardDescription>
       </CardHeader>
 
@@ -93,22 +115,25 @@ export function DocumentForm({ documentType, onSubmit, isLoading, submitLabel }:
             })}
           </div>
 
-          <div className="flex flex-col-reverse items-stretch justify-end gap-3 border-t border-white/5 pt-5 sm:flex-row sm:items-center">
-            <p className="text-xs text-slate-500 sm:mr-auto">
-              🔒 Pagamento único via Pix · liberado na hora
-            </p>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+          <div className="flex flex-col gap-3 border-t border-white/5 pt-5 sm:flex-row sm:items-center sm:justify-end">
+            {!hideDraft && onSaveDraft && (
+              <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isLoading} className="sm:mr-auto">
+                💾 Salvar Rascunho (grátis)
+              </Button>
+            )}
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className={hideDraft || !onSaveDraft ? "sm:ml-auto" : ""}>
               <Button type="submit" size="lg" disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading ? (
                   <span className="flex items-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Gerando...
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
+                      className="inline-block h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
+                    />
+                    Processando...
                   </span>
                 ) : (
-                  submitLabel ?? "⚡ Gerar e Baixar PDF Oficial"
+                  submitLabel ?? `⚡ Gerar Documento Oficial (R$ ${price.toFixed(2).replace(".", ",")})`
                 )}
               </Button>
             </motion.div>

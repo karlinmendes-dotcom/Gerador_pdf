@@ -7,8 +7,11 @@ import { generateDocumentData, type AiProvider } from "@/lib/ai-document-generat
 
 interface AiTextInputProps {
   documentType: string;
+  /** Dados estruturados pela IA — são injetados no DocumentForm/fluxo de paywall. */
   onGenerated: (data: Record<string, string>) => void;
   onError: (error: string) => void;
+  /** Quando true, a IA apenas preenche o formulário (sem disparar cobrança). */
+  fillOnly?: boolean;
 }
 
 const EXAMPLES: Record<string, string> = {
@@ -17,7 +20,7 @@ const EXAMPLES: Record<string, string> = {
   "declaracao-residencia": "Carlos Mendes, CPF 555.666.777-88, RG 12.345.678-9 SP, mora na Rua Augusta, 500, Apto 42, São Paulo/SP, CEP 01305-100.",
 };
 
-export function AiTextInput({ documentType, onGenerated, onError }: AiTextInputProps) {
+export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: AiTextInputProps) {
   const [text, setText] = useState("");
   const [provider, setProvider] = useState<AiProvider>("gemini");
   const [loading, setLoading] = useState(false);
@@ -45,7 +48,11 @@ export function AiTextInput({ documentType, onGenerated, onError }: AiTextInputP
         <CardTitle className="flex items-center gap-2 text-lg">
           <span className="text-xl">✨</span> Gerar com IA
         </CardTitle>
-        <CardDescription>Descreva em texto livre — a IA estrutura os dados automaticamente.</CardDescription>
+        <CardDescription>
+          {fillOnly
+            ? "Descreva em texto livre — a IA preenche o formulário abaixo para você revisar."
+            : "Descreva em texto livre — a IA estrutura os dados e segue direto para o pagamento."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Button variant="outline" size="sm" onClick={() => setText(EXAMPLES[documentType] ?? "")}>

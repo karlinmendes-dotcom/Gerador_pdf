@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DocumentForm } from "@/components/DocumentForm";
 import { PaymentModal } from "@/components/PaymentModal";
+import { AuthModal } from "@/components/AuthModal";
 import { useStore } from "@/lib/store";
-import { DOC_TYPES, getDocType, getPrice, generatePdf } from "@/lib/pdf-engine";
+import { useAuth } from "@/lib/auth";
+import { DOC_TYPES, getDocType, getPrice, generatePdf, downloadPdf } from "@/lib/pdf-engine";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -20,51 +22,70 @@ const fadeUp = {
 export default function LandingPage() {
   const nav = useNavigate();
   const addDocument = useStore((s) => s.addDocument);
+  const user = useAuth((s) => s.user);
 
   const [quickType, setQuickType] = useState<string | null>(null);
   const [pendingData, setPendingData] = useState<Record<string, string> | null>(null);
-  const [payDocId, setPayDocId] = useState<string | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [toast, setToast] = useState("");
 
-  /** Paywall: preencheu de graça — cobra só no "Gerar e Baixar PDF Oficial". */
-  const handleQuickGenerate = (data: Record<string, string>) => {
-    setPendingData(data);
-    setQuickType(null);
-    setPayDocId("quick");
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3200);
   };
 
+  /** Formulário submetido → paywall (com login prévio se necessário). */
+  const handleOfficialSubmit = (data: Record<string, string>) => {
+    if (!quickType) return;
+    if (!user) {
+      setPendingData({ ...data, __type: quickType });
+      setAuthOpen(true);
+      return;
+    }
+    setPendingData({ ...data, __type: quickType });
+    setQuickType(null);
+    setPayOpen(true);
+  };
+
+  /** Rascunho grátis — registra no histórico sem cobrança. */
+  const handleSaveDraft = (data: Record<string, string>) => {
+    if (!quickType) return;
+    addDocument({
+      userId: useStore.getState().userId,
+      documentType: quickType,
+      title: `${getDocType(quickType)?.name ?? quickType} — ${new Date().toLocaleDateString("pt-BR")}`,
+      dataJson: JSON.stringify(data),
+      status: "draft",
+    });
+    setQuickType(null);
+    showToast("Rascunho salvo! Veja no dashboard. 💾");
+  };
+
+  /** Pagamento aprovado → compila PDF → registra como pago → download. */
   const handlePaymentConfirmed = async (paymentId: string) => {
-    if (!pendingData || !quickTypeRef(pendingData)) return;
+    if (!pendingData) return;
+    const { __type, ...form } = pendingData;
     setGenerating(true);
     try {
-      const type = pendingData.__type as string;
-      const { __type, ...form } = pendingData;
-      const blob = await generatePdf(type, form);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${getDocType(type)?.name ?? "documento"}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      await downloadPdf(__type, form, `${getDocType(__type)?.name ?? "documento"}.pdf`);
       addDocument({
         userId: useStore.getState().userId,
-        documentType: type,
-        title: `${getDocType(type)?.name ?? type} — ${new Date().toLocaleDateString("pt-BR")}`,
+        documentType: __type,
+        title: `${getDocType(__type)?.name ?? __type} — ${new Date().toLocaleDateString("pt-BR")}`,
         dataJson: JSON.stringify(form),
         status: "paid",
         paymentId,
       });
+      showToast("Pagamento aprovado · PDF baixado ✅");
+    } catch {
+      showToast("Documento registrado como pago — baixe pelo dashboard.");
     } finally {
       setGenerating(false);
       setPendingData(null);
     }
   };
-
-  // helper kept local to avoid stale closure over quickType
-  const quickTypeRef = (data: Record<string, string> | null) => data?.__type;
 
   return (
     <div className="min-h-screen">
@@ -85,7 +106,12 @@ export default function LandingPage() {
               <span className="block text-[11px] text-slate-400">Gerador de Documentos Express</span>
             </div>
           </div>
-          <Button onClick={() => nav("/app")} size="sm">Acessar Plataforma</Button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Button onClick={() => nav("/app")} size="sm" variant="outline">Minha Conta</Button>
+            ) : null}
+            <Button onClick={() => nav("/app")} size="sm">Acessar Plataforma</Button>
+          </div>
         </div>
       </motion.header>
 
@@ -99,11 +125,7 @@ export default function LandingPage() {
         />
         <div className="container relative z-10 mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
               <Badge variant="secondary" className="mb-6 border-purple-500/25 bg-purple-500/10 px-4 py-1.5 text-purple-300">
                 ⚡ Motor único de formulários e PDF
               </Badge>
@@ -143,12 +165,7 @@ export default function LandingPage() {
               </Button>
             </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-6 text-xs text-slate-500"
-            >
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-6 text-xs text-slate-500">
               Grátis para preencher • Pix R$ 5–9 só no download • PDF pronto em segundos
             </motion.p>
           </div>
@@ -167,7 +184,7 @@ export default function LandingPage() {
             { icon: "📄", title: "PDF Profissional", desc: "Renderização instantânea com pdfme, 100% no seu navegador." },
             { icon: "📒", title: "Livro de Recibos", desc: "Parcelas, comprovantes Pix e progresso de quitação por contrato." },
             { icon: "📊", title: "Dashboard Completo", desc: "Histórico, status e download a qualquer momento, em qualquer tela." },
-            { icon: "🔐", title: "Dados no Convex", desc: "Metadados e comprovantes salvos no banco em tempo real." },
+            { icon: "🔐", title: "Dados no Convex", desc: "Conta, documentos e comprovantes salvos no banco em tempo real." },
           ].map((f, i) => (
             <motion.div key={i} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.07 }}>
               <Card className="group h-full transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-500/40 hover:shadow-[0_0_36px_-8px_rgba(139,92,246,0.45)]">
@@ -233,7 +250,9 @@ export default function LandingPage() {
                   <CardDescription className="text-xs">{doc.description}</CardDescription>
                   <div className="mt-3 flex items-center justify-center gap-2">
                     <Badge variant="secondary" className="text-[10px]">{doc.category}</Badge>
-                    <Badge variant="success" className="text-[10px]">a partir de R$ {getPrice(doc.id).toFixed(2).replace(".", ",")}</Badge>
+                    <Badge variant="success" className="text-[10px]">
+                      PDF R$ {getPrice(doc.id).toFixed(2).replace(".", ",")}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -245,7 +264,7 @@ export default function LandingPage() {
       {/* ─── CTA final ──────────────────────────────────────────── */}
       <section className="container mx-auto px-4 py-16 md:py-24">
         <motion.div {...fadeUp}>
-          <Card className="border-gradient mx-auto max-w-2xl overflow-hidden p-8 text-center md:p-12">
+          <Card className="border-gradient relative mx-auto max-w-2xl overflow-hidden p-8 text-center md:p-12">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-transparent to-cyan-500/10" />
             <h2 className="relative mb-3 text-2xl font-bold md:text-3xl">
               Pronto para forjar seu <span className="text-gradient">primeiro PDF?</span>
@@ -276,29 +295,58 @@ export default function LandingPage() {
                 {getDocType(quickType ?? "")?.name}
               </DialogTitle>
               <DialogDescription>
-                Preencha grátis — o Pix é solicitado apenas no download do PDF oficial.
+                Preencha grátis — salve como rascunho ou pague o Pix para baixar o PDF oficial.
               </DialogDescription>
             </DialogHeader>
             <DocumentForm
               documentType={quickType ?? ""}
-              onSubmit={handleQuickGenerate}
+              onSubmit={handleOfficialSubmit}
+              onSaveDraft={handleSaveDraft}
               isLoading={generating}
+              hideDraft={false}
             />
           </DialogContent>
         </Dialog>
       </AnimatePresence>
 
+      {/* ─── Auth (login/cadastro) ──────────────────────────────── */}
+      <AuthModal
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        reason="Crie sua conta grátis para salvar e gerar o PDF oficial."
+        onSuccess={() => {
+          // Retoma o paywall automaticamente após autenticação
+          if (pendingData) {
+            setTimeout(() => setPayOpen(true), 250);
+          }
+        }}
+      />
+
       {/* ─── Paywall (PIX) ──────────────────────────────────────── */}
-      {payDocId && pendingData && (
+      {payOpen && pendingData && (
         <PaymentModal
-          open={!!payDocId}
-          onOpenChange={(o) => { if (!o) setPayDocId(null); }}
-          documentId={payDocId}
+          open={payOpen}
+          onOpenChange={(o) => { if (!o) setPayOpen(false); }}
+          documentId="quick"
           amount={getPrice(pendingData.__type)}
           title={getDocType(pendingData.__type)?.name ?? "Documento"}
           onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
+
+      {/* ─── Toast ──────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            className="fixed bottom-8 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-300 backdrop-blur-xl"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

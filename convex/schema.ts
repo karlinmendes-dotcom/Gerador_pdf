@@ -6,6 +6,7 @@ export default defineSchema({
     externalId: v.string(),
     email: v.string(),
     name: v.optional(v.string()),
+    passwordHash: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_externalId", ["externalId"])
