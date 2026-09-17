@@ -246,6 +246,215 @@ export async function createGallery(
   return { key, title, items, mode: "local" };
 }
 
+// ─── QR estilizado: modelos, molduras, logo central e CTA ─────────────
+
+export type QrDotStyle = "square" | "rounded" | "dots";
+export type QrFrame = "none" | "border" | "card";
+
+export interface QrTemplate {
+  id: string;
+  name: string;
+  dark: string;
+  light: string;
+  dotStyle: QrDotStyle;
+  frame: QrFrame;
+}
+
+/** Modelos pré-definidos — aplicados com um clique no gerador. */
+export const QR_TEMPLATES: QrTemplate[] = [
+  { id: "classico", name: "Clássico", dark: "#0b0f17", light: "#ffffff", dotStyle: "square", frame: "none" },
+  { id: "arredondado", name: "Arredondado", dark: "#1d4ed8", light: "#ffffff", dotStyle: "rounded", frame: "none" },
+  { id: "bolhas", name: "Bolhas", dark: "#0e7490", light: "#f0fdff", dotStyle: "dots", frame: "none" },
+  { id: "moldura", name: "Moldura", dark: "#0b0f17", light: "#ffffff", dotStyle: "rounded", frame: "card" },
+  { id: "esmeralda", name: "Esmeralda", dark: "#065f46", light: "#ecfdf5", dotStyle: "dots", frame: "border" },
+  { id: "forja", name: "Forja PDFForge", dark: "#1e3a8a", light: "#eff6ff", dotStyle: "rounded", frame: "card" },
+];
+
+export interface StyledQrOptions {
+  dark?: string;
+  light?: string;
+  dotStyle?: QrDotStyle;
+  frame?: QrFrame;
+  /** Texto de CTA desenhado abaixo do QR (ex.: "Aponte a câmera"). */
+  caption?: string;
+  /** Data URL de logo/foto desenhada no centro (ativa correção de erro H). */
+  logoDataUrl?: string;
+  /** Dimensão base em px (padrão 1024). */
+  size?: number;
+}
+
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function drawModule(ctx: CanvasRenderingContext2D, x: number, y: number, cell: number, dotStyle: QrDotStyle) {
+  if (dotStyle === "square") {
+    ctx.fillRect(x, y, cell + 0.5, cell + 0.5); // +0.5 evita frestas hairline
+    return;
+  }
+  const pad = cell * 0.08;
+  const s = cell - pad * 2;
+  const r = dotStyle === "dots" ? s / 2 : s * 0.32;
+  roundRectPath(ctx, x + pad, y + pad, s, s, r);
+  ctx.fill();
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Falha ao carregar a imagem."));
+    img.src = src;
+  });
+}
+
+/** Lê um arquivo de imagem e redimensiona (lado maior = `max` px) — mantém o QR leve. */
+export async function imageFileToDataUrl(file: File, max = 512): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("Falha ao ler o arquivo."));
+    r.readAsDataURL(file);
+  });
+  const img = await loadImage(dataUrl);
+  const scale = Math.min(1, max / Math.max(img.width, img.height));
+  if (scale >= 1) return dataUrl;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
+}
+
+/**
+ * Renderiza o QR estilizado em canvas (PNG data URL):
+ * - dotStyle: quadrado, arredondado ou bolhas;
+ * - frame: sem moldura, borda fina ou cartão com cantos arredondados;
+ * - caption: texto de CTA abaixo do código;
+ * - logo: imagem central com colchão do fundo — a correção de erro nível H
+ *   mantém o QR legível mesmo com a área central coberta (~22%).
+ */
+export async function makeStyledQrDataUrl(text: string, opts: StyledQrOptions = {}): Promise<string> {
+  const {
+    dark = DEFAULT_QR_STYLE.dark,
+    light = DEFAULT_QR_STYLE.light,
+    dotStyle = "rounded",
+    frame = "none",
+    caption = "",
+    logoDataUrl,
+    size = 1024,
+  } = opts;
+
+  const qr = QRCode.create(text, { errorCorrectionLevel: logoDataUrl ? "H" : "Q" });
+  const count = qr.modules.size;
+  const bits = qr.modules.data;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas indisponível neste navegador.");
+
+  const captionH = caption.trim() ? Math.round(size * 0.115) : 0;
+  const frameW = frame === "none" ? 0 : Math.max(2, Math.round(size * 0.012));
+  const pad = frame === "none" ? Math.round(size * 0.04) : Math.round(size * 0.045) + frameW;
+
+  canvas.width = size;
+  canvas.height = size + captionH;
+
+  ctx.fillStyle = light;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Molduras
+  if (frame === "border" || frame === "card") {
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = frameW;
+    roundRectPath(
+      ctx,
+      frameW / 2,
+      frameW / 2,
+      size - frameW,
+      canvas.height - frameW,
+      frame === "card" ? Math.round(size * 0.05) : Math.round(size * 0.028)
+    );
+    ctx.stroke();
+  }
+
+  const qrArea = size - pad * 2;
+  const cell = qrArea / count;
+  const ox = pad;
+  const oy = pad;
+
+  ctx.fillStyle = dark;
+
+  // Módulos de dados (os finders são desenhados à parte para ficarem nítidos)
+  const inFinder = (r: number, c: number) =>
+    (r < 7 && c < 7) || (r < 7 && c >= count - 7) || (r >= count - 7 && c < 7);
+
+  for (let r = 0; r < count; r++) {
+    for (let c = 0; c < count; c++) {
+      if (!bits[r * count + c] || inFinder(r, c)) continue;
+      drawModule(ctx, ox + c * cell, oy + r * cell, cell, dotStyle);
+    }
+  }
+
+  // Finder patterns 7×7: quadrado escuro → anel claro → núcleo escuro
+  const finderCorners: [number, number][] = [
+    [0, 0],
+    [0, count - 7],
+    [count - 7, 0],
+  ];
+  for (const [fr, fc] of finderCorners) {
+    const x = ox + fc * cell;
+    const y = oy + fr * cell;
+    const s = cell * 7;
+    const corner = dotStyle === "square" ? cell * 1.1 : cell * 2.2;
+    ctx.fillStyle = dark;
+    roundRectPath(ctx, x, y, s, s, corner);
+    ctx.fill();
+    ctx.fillStyle = light;
+    roundRectPath(ctx, x + cell, y + cell, s - cell * 2, s - cell * 2, Math.max(corner - cell * 0.8, cell * 0.6));
+    ctx.fill();
+    ctx.fillStyle = dark;
+    roundRectPath(ctx, x + cell * 2, y + cell * 2, s - cell * 4, s - cell * 4, Math.max(corner - cell * 1.4, cell * 0.5));
+    ctx.fill();
+  }
+
+  // Logo central com colchão da cor de fundo (área de segurança ~22% do QR)
+  if (logoDataUrl) {
+    const img = await loadImage(logoDataUrl);
+    const logoSize = qrArea * 0.22;
+    const cushion = logoSize * 0.14;
+    const lx = ox + (qrArea - logoSize) / 2;
+    const ly = oy + (qrArea - logoSize) / 2;
+    ctx.fillStyle = light;
+    roundRectPath(ctx, lx - cushion, ly - cushion, logoSize + cushion * 2, logoSize + cushion * 2, logoSize * 0.24);
+    ctx.fill();
+    const ratio = Math.min(logoSize / img.width, logoSize / img.height);
+    const w = img.width * ratio;
+    const h = img.height * ratio;
+    ctx.drawImage(img, lx + (logoSize - w) / 2, ly + (logoSize - h) / 2, w, h);
+  }
+
+  // CTA abaixo do QR
+  if (captionH > 0) {
+    ctx.fillStyle = dark;
+    ctx.font = `bold ${Math.round(size * 0.047)}px Helvetica, Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(caption.trim().slice(0, 64), size / 2, size + captionH / 2, size - pad * 2);
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
 /** Lista galerias do usuário (Convex) — falha silenciosamente offline. */
 export async function listUserGalleries(userId?: string): Promise<CreatedGallery[]> {
   if (!CONVEX_URL || !userId) {

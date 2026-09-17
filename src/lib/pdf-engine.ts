@@ -90,7 +90,7 @@ const a4: A4Page = {
       fontColor: "#333333",
       fontName: FONT_BODY,
       alignment: "center",
-      content: `${local ?? "Local"}, ${data ?? "data"}`,
+      content: `${local ?? "__________________"}, ${data ?? "__________________"}`,
     },
     {
       type: "text",
@@ -149,27 +149,40 @@ function brl(v: string): string {
   return v;
 }
 
+/**
+ * REGRA DE NEGÓCIO — nenhum campo é obrigatório. Campo vazio vira uma linha
+ * em branco (____) para preenchimento manual à caneta após a impressão.
+ * Quando o campo foi preenchido, devolve o valor informado.
+ */
+function fill(value: string | undefined, placeholder = ""): string {
+  const v = (value ?? "").trim();
+  return v || placeholder || "______________________";
+}
+
+/** Linha longa para endereços/descrições deixados em branco. */
+const LONG_BLANK = "___________________________________________________________";
+
 const BODY_BUILDERS: Record<string, (d: Record<string, string>) => string> = {
   "compra-venda-veiculo": (d) => `CONTRATO PARTICULAR DE COMPRA E VENDA DE VEÍCULO AUTOMOTOR
 
-Aos ${d.data_venda ?? "____"}, na cidade de ${d.local_venda ?? "____"}, as partes qualificadas abaixo celebram o presente Contrato de Compra e Venda de Veículo, regido pelas cláusulas seguintes.
+Aos ${fill(d.data_venda)}, na cidade de ${fill(d.local_venda)}, as partes qualificadas abaixo celebram o presente Contrato de Compra e Venda de Veículo, regido pelas cláusulas seguintes.
 
 CLÁUSULA 1ª — DAS PARTES
-VENDEDOR(A): ${d.vendedor_nome ?? "____"}, CPF/CNPJ nº ${d.vendedor_cpf_cnpj ?? "____"}, RG nº ${d.vendedor_rg ?? "____"}, residente e domiciliado(a) em ${d.vendedor_endereco ?? "____"}.
-COMPRADOR(A): ${d.comprador_nome ?? "____"}, CPF/CNPJ nº ${d.comprador_cpf_cnpj ?? "____"}, RG nº ${d.comprador_rg ?? "____"}, residente e domiciliado(a) em ${d.comprador_endereco ?? "____"}.
+VENDEDOR(A): ${fill(d.vendedor_nome)}, CPF/CNPJ nº ${fill(d.vendedor_cpf_cnpj)}, RG nº ${fill(d.vendedor_rg)}, residente e domiciliado(a) em ${fill(d.vendedor_endereco, LONG_BLANK)}.
+COMPRADOR(A): ${fill(d.comprador_nome)}, CPF/CNPJ nº ${fill(d.comprador_cpf_cnpj)}, RG nº ${fill(d.comprador_rg)}, residente e domiciliado(a) em ${fill(d.comprador_endereco, LONG_BLANK)}.
 
 CLÁUSULA 2ª — DO OBJETO
 O(A) VENDEDOR(A) vende ao(à) COMPRADOR(A), que declara aceitar, o veículo abaixo descrito:
-• Marca: ${d.veiculo_marca ?? "____"}    • Modelo: ${d.veiculo_modelo ?? "____"}
-• Ano/Modelo: ${d.veiculo_ano_modelo ?? "____"}    • Cor: ${d.veiculo_cor ?? "____"}
-• Placa: ${d.veiculo_placa ?? "____"}    • RENAVAM: ${d.veiculo_renavam ?? "____"}
-• Chassi: ${d.veiculo_chassi ?? "____"}
+• Marca: ${fill(d.veiculo_marca)}    • Modelo: ${fill(d.veiculo_modelo)}
+• Ano/Modelo: ${fill(d.veiculo_ano_modelo)}    • Cor: ${fill(d.veiculo_cor)}
+• Placa: ${fill(d.veiculo_placa)}    • RENAVAM: ${fill(d.veiculo_renavam)}
+• Chassi: ${fill(d.veiculo_chassi)}
 
 CLÁUSULA 3ª — DO PREÇO E DA FORMA DE PAGAMENTO
-O preço total da venda é de R$ ${brl(d.valor_total ?? "____")}, pagos da seguinte forma: ${d.forma_pagamento ?? "____"}${d.forma_pagamento === "Parcelado" && d.parcelamento_detalhe ? ` (${d.parcelamento_detalhe})` : ""}.
+O preço total da venda é de R$ ${brl(fill(d.valor_total))}, pagos da seguinte forma: ${fill(d.forma_pagamento)}${d.forma_pagamento === "Parcelado" && d.parcelamento_detalhe ? ` (${d.parcelamento_detalhe})` : ""}.
 
 CLÁUSULA 4ª — DA ENTREGA
-A entrega do veículo e dos documentos ocorrerá na data de ${d.data_entrega ?? "____"}, com ata de entrega assinada pelas partes.
+A entrega do veículo e dos documentos ocorrerá na data de ${fill(d.data_entrega)}, com ata de entrega assinada pelas partes.
 
 CLÁUSULA 5ª — DAS GARANTIAS E DECLARAÇÕES
 O(A) VENDEDOR(A) declara que o veículo está livre de ônus, gravames, alienação fiduciária, multas e restrições, respondendo civilmente por eventuais informações inverídicas.
@@ -181,19 +194,19 @@ Parágrafo único: ficam as partes cientes de que o presente contrato obriga exc
 
   "recibo-pagamento": (d) => `RECIBO DE PAGAMENTO
 
-Recebi de ${d.pagador_nome ?? "____"}, inscrito(a) no CPF/CNPJ sob nº ${d.pagador_cpf_cnpj ?? "____"}, a importância de R$ ${brl(d.valor ?? "____")}, referente a ${d.referente_a ?? "____"}, dando plena, geral e irrevogável quitação do valor recebido.
+Recebi de ${fill(d.pagador_nome)}, inscrito(a) no CPF/CNPJ sob nº ${fill(d.pagador_cpf_cnpj)}, a importância de R$ ${brl(fill(d.valor))}, referente a ${fill(d.referente_a, LONG_BLANK)}, dando plena, geral e irrevogável quitação do valor recebido.
 
-${d.parcelamento ? `PARCELAMENTO: pagamento em ${d.numero_parcelas ?? "____"} parcelas de R$ ${d.valor_parcela ?? "____"} cada, regidas pelo Livro de Recibos vinculado a este documento.\n\n` : ""}Local e data: ${d.cidade ?? "____"}, ${d.data ?? "____"}.
+${d.parcelamento === "true" ? `PARCELAMENTO: pagamento em ${fill(d.numero_parcelas)} parcelas de R$ ${fill(d.valor_parcela)} cada, regidas pelo Livro de Recibos vinculado a este documento.\n\n` : ""}Local e data: ${fill(d.cidade)}, ${fill(d.data)}.
 
 Declarações do recebedor: o valor recebido não inclui tributos retidos por lei, quando aplicáveis, e este recibo não substitui nota fiscal.`,
 
   "declaracao-residencia": (d) => `DECLARAÇÃO DE RESIDÊNCIA
 
-Eu, ${d.declarante_nome ?? "____"}, inscrito(a) no CPF sob nº ${d.declarante_cpf ?? "____"}, RG nº ${d.declarante_rg ?? "____"}, profissão ${d.declarante_profissao ?? "____"}, declaro, para os devidos fins e sob as penas da lei, que resido no seguinte endereço:
+Eu, ${fill(d.declarante_nome)}, inscrito(a) no CPF sob nº ${fill(d.declarante_cpf)}, RG nº ${fill(d.declarante_rg)}, profissão ${fill(d.declarante_profissao)}, declaro, para os devidos fins e sob as penas da lei, que resido no seguinte endereço:
 
-Rua/Logradouro: ${d.endereco_rua ?? "____"}, nº ${d.endereco_numero ?? "____"}${d.endereco_complemento ? ` — ${d.endereco_complemento}` : ""}
-Bairro: ${d.endereco_bairro ?? "____"}    CEP: ${d.endereco_cep ?? "____"}
-Cidade/UF: ${d.endereco_cidade ?? "____"}/${d.endereco_estado ?? "____"}
+Rua/Logradouro: ${fill(d.endereco_rua)}, nº ${fill(d.endereco_numero)}${d.endereco_complemento ? ` — ${d.endereco_complemento}` : ""}
+Bairro: ${fill(d.endereco_bairro)}    CEP: ${fill(d.endereco_cep)}
+Cidade/UF: ${fill(d.endereco_cidade)}/${fill(d.endereco_estado)}
 
 DECLARAÇÃO SOB AS PENAS DA LEI
 Declaro estar ciente de que a falsidade desta declaração configura crime previsto no Art. 299 do Código Penal (falsidade ideológica), punido com reclusão e multa, além das demais sanções civis e administrativas cabíveis.
@@ -205,20 +218,20 @@ Por ser expressão da verdade, firmo a presente declaração.`,
 As partes qualificadas abaixo celebram o presente Contrato de Locação do imóvel descrito, que se regerá pela Lei nº 8.245/91 (Lei do Inquilinato) e pelas cláusulas seguintes.
 
 CLÁUSULA 1ª — DAS PARTES
-LOCADOR(A): ${d.locador_nome ?? "____"}, CPF/CNPJ nº ${d.locador_cpf_cnpj ?? "____"}, RG nº ${d.locador_rg ?? "____"}, residente em ${d.locador_endereco ?? "____"}.
-LOCATÁRIO(A): ${d.locatario_nome ?? "____"}, CPF/CNPJ nº ${d.locatario_cpf_cnpj ?? "____"}, RG nº ${d.locatario_rg ?? "____"}, residente em ${d.locatario_endereco ?? "____"}.
+LOCADOR(A): ${fill(d.locador_nome)}, CPF/CNPJ nº ${fill(d.locador_cpf_cnpj)}, RG nº ${fill(d.locador_rg)}, residente em ${fill(d.locador_endereco, LONG_BLANK)}.
+LOCATÁRIO(A): ${fill(d.locatario_nome)}, CPF/CNPJ nº ${fill(d.locatario_cpf_cnpj)}, RG nº ${fill(d.locatario_rg)}, residente em ${fill(d.locatario_endereco, LONG_BLANK)}.
 
 CLÁUSULA 2ª — DO IMÓVEL
-O imóvel locado situa-se em ${d.imovel_endereco ?? "____"}, destinado a fins ${String(d.imovel_finalidade ?? "Residencial").toLowerCase()}.
+O imóvel locado situa-se em ${fill(d.imovel_endereco, LONG_BLANK)}, destinado a fins ${String(d.imovel_finalidade ?? "Residencial").toLowerCase()}.
 
 CLÁUSULA 3ª — DO VALOR E DO VENCIMENTO
-O aluguel mensal é de R$ ${brl(d.valor_aluguel ?? "____")}, vencível todo dia ${d.dia_vencimento ?? "____"} de cada mês, mediante recibo ou comprovante de pagamento.
+O aluguel mensal é de R$ ${brl(fill(d.valor_aluguel))}, vencível todo dia ${fill(d.dia_vencimento)} de cada mês, mediante recibo ou comprovante de pagamento.
 
 CLÁUSULA 4ª — DA DURAÇÃO
-O presente contrato terá a duração de ${d.duracao_meses ?? "____"} meses, iniciando em ${d.data_inicio ?? "____"}, prorrogável por acordo entre as partes.
+O presente contrato terá a duração de ${fill(d.duracao_meses)} meses, iniciando em ${fill(d.data_inicio)}, prorrogável por acordo entre as partes.
 
 CLÁUSULA 5ª — DA GARANTIA
-A garantia contratada é: ${d.forma_garantia ?? "Sem garantia"}${d.valor_caucao ? `, no valor de R$ ${brl(d.valor_caucao)}` : ""}, que responderá poreventuais débitos e danos, nos termos da lei.
+A garantia contratada é: ${fill(d.forma_garantia, "Sem garantia")}${d.valor_caucao ? `, no valor de R$ ${brl(d.valor_caucao)}` : ""}, que responderá por eventuais débitos e danos, nos termos da lei.
 
 CLÁUSULA 6ª — DAS OBRIGAÇÕES
 O(A) LOCATÁRIO(A) obriga-se a usar o imóvel conforme a finalidade pactuada, conservá-lo e pagar pontualmente os encargos; o(A) LOCADOR(A) garante o uso pacífico do imóvel durante a locação.`,

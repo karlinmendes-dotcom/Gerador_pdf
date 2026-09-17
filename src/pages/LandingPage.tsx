@@ -14,6 +14,9 @@ import {
   QrCode as QrCodeIcon,
   BriefcaseBusiness,
   PenLine,
+  FileSignature,
+  Wallet,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +52,68 @@ const TOOL_CARDS = [
     desc: "Currículo elegante em 1 página, pronto para enviar em processos seletivos.",
     badge: "Novo",
     action: "doc" as const,
+  },
+];
+
+/** Blocos explicativos detalhados de cada ferramenta do sistema. */
+const TOOL_EXPLAINERS = [
+  {
+    id: "docs",
+    icon: FileSignature,
+    name: "Gerador de Contratos e Documentos",
+    desc: "Criação rápida de contratos, recibos e declarações com opção de preenchimento parcial ou em branco.",
+    bullets: [
+      "5 modelos prontos: compra de veículo, aluguel, recibo, declaração de residência e mais",
+      "Preencha só o que souber — campos vazios viram linhas para completar à caneta",
+      "Assistente de IA opcional: descreva o negócio em texto livre e os campos se preenchem sozinhos",
+      "PDF A4 profissional gerado no navegador em segundos",
+    ],
+    cta: "Preencher um documento",
+    action: "doc" as const,
+    docType: "compra-venda-veiculo",
+  },
+  {
+    id: "qr",
+    icon: QrCodeIcon,
+    name: "Gerador de QR Code Profissional",
+    desc: "Personalização completa com cores, molduras, modelos e inserção de logomarca no centro.",
+    bullets: [
+      "Upload de logo ou foto no centro do QR com correção de erro nível H",
+      "6 modelos pré-definidos: clássico, arredondado, bolhas, moldura e mais",
+      "Cores customizadas, molduras (borda fina ou cartão) e texto de CTA abaixo do código",
+      "Download em PNG de alta resolução ou SVG vetorial",
+    ],
+    cta: "Criar meu QR Code",
+    action: "qr" as const,
+  },
+  {
+    id: "receipts",
+    icon: Wallet,
+    name: "Livro de Recibos & Histórico Pix",
+    desc: "Controle financeiro completo de pagamentos, parcelas e comprovação.",
+    bullets: [
+      "Contratos parcelados geram automaticamente o livro de recibos (ex.: parcela 3 de 12)",
+      "Upload do comprovante Pix de cada parcela direto no painel",
+      "Barra de progresso de quitação por contrato",
+      "Histórico de pagamentos com ID do Mercado Pago e valores",
+    ],
+    cta: "Abrir no dashboard",
+    action: "app" as const,
+  },
+  {
+    id: "personal",
+    icon: BriefcaseBusiness,
+    name: "Gerador de Currículos / Declarações",
+    desc: "Criação ágil de documentos pessoais prontos para impressão e download.",
+    bullets: [
+      "Currículo profissional de 1 página com formato aprovado em processos seletivos",
+      "Declaração de residência com texto jurídico conforme Art. 299 do Código Penal",
+      "Layout A4 limpo, pronto para imprimir ou enviar por e-mail",
+      "Reedite e baixe novamente quando quiser pelo histórico",
+    ],
+    cta: "Criar currículo ou declaração",
+    action: "doc" as const,
+    docType: "curriculo-profissional",
   },
 ];
 
@@ -305,6 +370,58 @@ export default function LandingPage() {
               </Card>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* ─── Explicativo detalhado das ferramentas ──────────────── */}
+      <section className="bg-white py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <motion.h2 {...fadeUp} className="mb-4 text-center text-3xl font-bold text-slate-900 md:text-4xl">
+            O que cada ferramenta <span className="text-gradient">faz por você</span>
+          </motion.h2>
+          <motion.p {...fadeUp} className="mb-12 text-center text-slate-600">
+            Quatro módulos, um único sistema — tudo integrado ao mesmo painel e à mesma conta.
+          </motion.p>
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
+            {TOOL_EXPLAINERS.map((tool, i) => (
+              <motion.div key={tool.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: (i % 2) * 0.08 }}>
+                <Card className="group flex h-full flex-col transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md">
+                  <CardHeader className="pb-3">
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-blue-50 transition-transform duration-300 group-hover:scale-110">
+                        <tool.icon className="h-6 w-6 text-blue-600" />
+                      </span>
+                      <CardTitle className="text-lg leading-snug text-slate-900">{tool.name}</CardTitle>
+                    </div>
+                    <CardDescription className="text-sm leading-relaxed">{tool.desc}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-1 flex-col justify-between gap-5">
+                    <ul className="space-y-2.5">
+                      {tool.bullets.map((b) => (
+                        <li key={b} className="flex items-start gap-2.5 text-sm text-slate-600">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      variant="outline"
+                      className="w-full group-hover:border-blue-400 group-hover:text-blue-700"
+                      onClick={() =>
+                        tool.action === "qr"
+                          ? setQrOpen(true)
+                          : tool.action === "app"
+                            ? nav("/app")
+                            : setQuickType(tool.docType ?? "compra-venda-veiculo")
+                      }
+                    >
+                      {tool.cta} →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 

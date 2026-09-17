@@ -35,36 +35,26 @@ export function DocumentForm({
   const schema = getSchema(documentType);
   const price = getPrice(documentType);
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const handleChange = (key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const missing = schema.fields.filter(
+  // REGRA DE NEGÓCIO: nenhum campo é obrigatório — o PDF é gerado mesmo com
+  // campos em branco (o motor desenha linhas "____" para preenchimento à
+  // caneta após a impressão). Campos marcados como required no schema são
+  // tratados apenas como "recomendados".
+  const recommended = schema.fields.filter(
     (f) => f.required && !String(formData[f.key] ?? "").trim()
   );
-  const isValid = missing.length === 0;
-
-  const invalidateAll = () =>
-    setTouched(Object.fromEntries(schema.fields.map((f) => [f.key, true])));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) {
-      invalidateAll();
-      return;
-    }
     onSubmit(formData);
   };
 
   const handleSaveDraft = () => {
-    if (!onSaveDraft) return;
-    if (!isValid) {
-      invalidateAll();
-      return;
-    }
-    onSaveDraft(formData);
+    onSaveDraft?.(formData);
   };
 
   return (
@@ -82,7 +72,8 @@ export function DocumentForm({
           </span>
         </CardTitle>
         <CardDescription className="pt-1">
-          {schema.description} Campos com <span className="text-blue-600">*</span> são obrigatórios.
+          {schema.description} Preencha apenas o que quiser — campos deixados em
+          branco viram linhas para preenchimento à caneta no PDF.
         </CardDescription>
       </CardHeader>
 
@@ -94,13 +85,21 @@ export function DocumentForm({
                 key={field.key}
                 field={field}
                 value={formData[field.key] ?? ""}
-                invalid={!!touched[field.key] && field.required && !String(formData[field.key] ?? "").trim()}
+                invalid={false}
                 onChange={(v) => handleChange(field.key, v)}
-                onBlur={() => setTouched((t) => ({ ...t, [field.key]: true }))}
+                onBlur={() => undefined}
                 index={i}
               />
             ))}
           </div>
+
+          {recommended.length > 0 && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+              Dica: <strong>{recommended.length} campo{recommended.length > 1 ? "s" : ""} recomendado{recommended.length > 1 ? "s" : ""}</strong>{" "}
+              {recommended.length > 1 ? "estão" : "está"} em branco ({recommended.slice(0, 3).map((f) => f.label).join(", ")}
+              {recommended.length > 3 ? "…" : ""}). Você pode gerar assim mesmo e completar à caneta.
+            </p>
+          )}
 
           <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-end">
             {!hideDraft && onSaveDraft && (

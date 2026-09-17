@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Images, CheckCircle2, QrCode } from "lucide-react";
+import { Images, CheckCircle2, QrCode, ImagePlus, Trash2, Frame, Type } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/Skeleton";
 import { useAuth } from "@/lib/auth";
 import { track, captureError } from "@/lib/telemetry";
+import { QR_TEMPLATES } from "@/lib/qr-engine";
+import type { QrTemplate } from "@/lib/qr-engine";
 
 // Motor de QR (dep. pesada `qrcode`) carregado sob demanda.
 const qrEnginePromise = import("@/lib/qr-engine");
 type QrEngine = typeof import("@/lib/qr-engine");
-import type { QrStyle, CreatedGallery } from "@/lib/qr-engine";
+import type { CreatedGallery } from "@/lib/qr-engine";
 
 function useQrEngine() {
   const [engine, setEngine] = useState<QrEngine | null>(null);
@@ -30,13 +32,16 @@ function useQrEngine() {
 
 type Tab = "text" | "gallery";
 
-const PRESET_COLORS: { name: string; dark: string; light: string }[] = [
-  { name: "Forja", dark: "#0b0f17", light: "#ffffff" },
-  { name: "Roxo", dark: "#6d28d9", light: "#faf5ff" },
-  { name: "Ciano", dark: "#0e7490", light: "#ecfeff" },
-  { name: "Esmeralda", dark: "#065f46", light: "#ecfdf5" },
-  { name: "Rosa", dark: "#9d174d", light: "#fdf2f8" },
-];
+/** Estado de design do QR da aba Texto/Link. */
+interface QrDesign {
+  templateId: string | null;
+  dark: string;
+  light: string;
+  dotStyle: QrTemplate["dotStyle"];
+  frame: QrTemplate["frame"];
+  caption: string;
+  logoDataUrl: string;
+}
 
 interface QrCodeGeneratorProps {
   open: boolean;
@@ -117,12 +122,19 @@ export function QrCodeGenerator({ open, onOpenChange }: QrCodeGeneratorProps) {
 function TextQrTab() {
   const engine = useQrEngine();
   const [text, setText] = useState("");
-  const [style, setStyle] = useState<QrEngine["DEFAULT_QR_STYLE"] extends infer S ? S : never>(
-    // Valor padrão sintetizado sem importar o módulo de forma síncrona:
-    { dark: "#0b0f17", light: "#ffffff", ecc: "M", margin: 2 }
-  );
+  const [design, setDesign] = useState<QrDesign>({
+    templateId: null,
+    dark: "#0b0f17",
+    light: "#ffffff",
+    dotStyle: "rounded",
+    frame: "none",
+    caption: "",
+    logoDataUrl: "",
+  });
   const [png, setPng] = useState("");
   const [busy, setBusy] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const trimmed = text.trim();
   const valid = trimmed.length > 0 && trimmed.length <= 1000;
@@ -136,7 +148,14 @@ function TextQrTab() {
     setBusy(true);
     let cancelled = false;
     engine
-      .makeQrDataUrl(trimmed, style)
+      .makeStyledQrDataUrl(trimmed, {
+        dark: design.dark,
+        light: design.light,
+        dotStyle: design.dotStyle,
+        frame: design.frame,
+        caption: design.caption,
+        logoDataUrl: design.logoDataUrl || undefined,
+      })
       .then((url) => {
         if (!cancelled) setPng(url);
       })
@@ -147,7 +166,31 @@ function TextQrTab() {
     return () => {
       cancelled = true;
     };
-  }, [trimmed, valid, style, engine]);
+  }, [trimmed, valid, design, engine]);
+
+  const handleLogo = async (file: File | undefined) => {
+    if (!file || !engine) return;
+    setLogoBusy(true);
+    try {
+      const dataUrl = await engine.imageFileToDataUrl(file);
+      setDesign((d) => ({ ...d, logoDataUrl: dataUrl }));
+    } catch (err) {
+      captureError(err, { where: "qr_logo" });
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const applyTemplate = (t: QrTemplate) => {
+    setDesign((d) => ({
+      ...d,
+      templateId: t.id,
+      dark: t.dark,
+      light: t.light,
+      dotStyle: t.dotStyle,
+      frame: t.frame,
+    }));
+  };
 
   return (
     <div className="space-y-4">
@@ -164,7 +207,111 @@ function TextQrTab() {
         />
       </div>
 
-      <ColorPicker style={style} onChange={setStyle} />
+      <TemplatePicker design={design} onApply={applyTemplate} />
+
+      <ColorPicker
+        dark={design.dark}
+        light={design.light}
+        onChange={(dark, light) => setDesign((d) => ({ ...d, dark, light, templateId: null }))}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        {/* Upload de logo/foto no centro do QR */}
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-slate-600">
+            <ImagePlus className="h-3.5 w-3.5" /> Logo central
+          </Label>
+          {design.logoDataUrl ? (
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+              <img src={design.logoDataUrl} alt="Logo" className="h-9 w-9 rounded object-contain" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  className="block w-full text-left text-[11px] font-medium text-blue-700 hover:underline"
+                >
+                  Trocar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDesign((d) => ({ ...d, logoDataUrl: "" }))}
+                  className="flex items-center gap-1 text-[11px] text-slate-400 transition-colors hover:text-red-600"
+                >
+                  <Trash2 className="h-3 w-3" /> Remover
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="flex w-full flex-col items-center gap-1 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 py-3.5 text-center transition-all hover:border-blue-400 hover:bg-blue-50/50"
+            >
+              {logoBusy ? (
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
+                  className="inline-block h-4 w-4 rounded-full border-2 border-slate-300 border-t-blue-600"
+                />
+              ) : (
+                <ImagePlus className="h-4 w-4 text-blue-600" />
+              )}
+              <span className="text-[11px] text-slate-500">Enviar imagem</span>
+            </button>
+          )}
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => void handleLogo(e.target.files?.[0])}
+          />
+        </div>
+
+        {/* Texto de CTA abaixo do QR */}
+        <div className="space-y-1.5">
+          <Label htmlFor="qr-caption" className="flex items-center gap-1.5 text-slate-600">
+            <Type className="h-3.5 w-3.5" /> Texto (CTA)
+          </Label>
+          <Input
+            id="qr-caption"
+            placeholder="Ex.: Aponte a câmera"
+            value={design.caption}
+            maxLength={64}
+            onChange={(e) => setDesign((d) => ({ ...d, caption: e.target.value }))}
+            className="field-neon"
+          />
+          <p className="text-[10px] text-slate-400">Aparece abaixo do QR no PNG.</p>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-slate-600">
+          <Frame className="h-3.5 w-3.5" /> Moldura
+        </Label>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { id: "none", label: "Nenhuma" },
+              { id: "border", label: "Borda fina" },
+              { id: "card", label: "Cartão" },
+            ] as { id: QrTemplate["frame"]; label: string }[]
+          ).map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setDesign((d) => ({ ...d, frame: f.id }))}
+              className={`rounded-lg border px-2 py-2 text-xs font-medium transition-all ${
+                design.frame === f.id
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <QrPreview png={png} busy={busy || !engine} emptyHint="Digite um texto ou link acima para gerar o QR." />
 
@@ -173,10 +320,41 @@ function TextQrTab() {
         onPng={() => png && engine?.downloadDataUrl(png, "pdfforge-qrcode.png")}
         onSvg={async () => {
           if (!valid || !engine) return;
-          const svg = await engine.makeQrSvg(trimmed, style);
+          const svg = await engine.makeQrSvg(trimmed, { dark: design.dark, light: design.light, ecc: "Q", margin: 2 });
           engine.downloadSvg(svg, "pdfforge-qrcode.svg");
         }}
       />
+    </div>
+  );
+}
+
+/** Seleção de modelos pré-definidos (aplicam estilo + moldura de uma vez). */
+function TemplatePicker({ design, onApply }: { design: QrDesign; onApply: (t: QrTemplate) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-slate-600">Modelos</Label>
+      <div className="flex flex-wrap gap-2">
+        {QR_TEMPLATES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onApply(t)}
+            className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-all ${
+              design.templateId === t.id
+                ? "border-blue-500 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-sm border"
+              style={{ background: t.light, borderColor: t.dark }}
+            >
+              <span className="h-2 w-2 rounded-[2px]" style={{ background: t.dark }} />
+            </span>
+            {t.name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -362,35 +540,25 @@ function GalleryResult({ gallery }: { gallery: CreatedGallery }) {
 
 // ─── Shared UI ────────────────────────────────────────────────────────
 
-function ColorPicker({ style, onChange }: { style: QrStyle; onChange: (s: QrStyle) => void }) {
-  // `QrStyle` é reexportado como type-only — ver abaixo.
+function ColorPicker({
+  dark,
+  light,
+  onChange,
+}: {
+  dark: string;
+  light: string;
+  onChange: (dark: string, light: string) => void;
+}) {
   return (
     <div className="space-y-2">
-      <Label className="text-slate-600">Personalização</Label>
-      <div className="flex flex-wrap gap-2">
-        {PRESET_COLORS.map((c) => (
-          <button
-            key={c.name}
-            type="button"
-            onClick={() => onChange({ ...style, dark: c.dark, light: c.light })}
-            className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-all ${
-              style.dark === c.dark
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-            }`}
-          >
-            <span className="h-4 w-4 rounded-sm" style={{ background: c.dark }} />
-            {c.name}
-          </button>
-        ))}
-      </div>
+      <Label className="text-slate-600">Cores customizadas</Label>
       <div className="flex gap-3">
         <label className="flex items-center gap-2 text-xs text-slate-500">
           Cor dos módulos
           <input
             type="color"
-            value={style.dark}
-            onChange={(e) => onChange({ ...style, dark: e.target.value })}
+            value={dark}
+            onChange={(e) => onChange(e.target.value, light)}
             className="h-7 w-9 cursor-pointer rounded border border-slate-200 bg-white"
           />
         </label>
@@ -398,8 +566,8 @@ function ColorPicker({ style, onChange }: { style: QrStyle; onChange: (s: QrStyl
           Fundo
           <input
             type="color"
-            value={style.light}
-            onChange={(e) => onChange({ ...style, light: e.target.value })}
+            value={light}
+            onChange={(e) => onChange(dark, e.target.value)}
             className="h-7 w-9 cursor-pointer rounded border border-slate-200 bg-white"
           />
         </label>
