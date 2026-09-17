@@ -75,12 +75,12 @@ export function ReceiptBook({ documentId }: ReceiptBookProps) {
             <span className="text-sm font-medium">Progresso de quitação</span>
             <span className="text-sm font-bold text-emerald-400">{paid}/{total} parcelas</span>
           </div>
-          <div className="h-3 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="h-3 overflow-hidden rounded-full bg-slate-100">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 shadow-[0_0_16px_rgba(16,185,129,0.6)]"
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-sky-500"
             />
           </div>
           <p className="mt-2 text-xs text-slate-400">{progress.toFixed(0)}% quitado · toque em "Pix" para enviar o comprovante</p>
@@ -100,12 +100,12 @@ export function ReceiptBook({ documentId }: ReceiptBookProps) {
                 ? "border-emerald-500/25 bg-emerald-500/[0.06]"
                 : receipt.status === "overdue"
                 ? "border-red-500/25 bg-red-500/[0.06]"
-                : "border-white/5 bg-white/[0.02] hover:border-amber-500/25"
+                : "border-slate-200 bg-white hover:border-amber-300"
             }`}
           >
             <div className="flex min-w-0 items-center gap-3">
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ${
-                receipt.status === "paid" ? "bg-emerald-500/10 ring-emerald-500/30" : "bg-white/[0.04] ring-white/10"
+                receipt.status === "paid" ? "bg-emerald-50 ring-emerald-200" : "bg-slate-50 ring-slate-200"
               }`}>
                 {receipt.status === "paid" ? <Check className="h-4 w-4 text-emerald-400" /> : <span className="text-xs font-bold text-slate-400">{receipt.installmentNumber}</span>}
               </div>
@@ -143,7 +143,7 @@ export function ReceiptBook({ documentId }: ReceiptBookProps) {
       </div>
 
       {/* Total */}
-      <div className="flex justify-between rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm">
+      <div className="flex justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
         <span className="text-slate-400">Total do contrato:</span>
         <span className="font-bold">
           R$ {receipts.reduce((s, r) => s + r.amount, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}

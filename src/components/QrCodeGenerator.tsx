@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Images, CheckCircle2, QrCode } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,12 +54,12 @@ export function QrCodeGenerator({ open, onOpenChange }: QrCodeGeneratorProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto border-white/10 bg-zinc-900/80 shadow-2xl shadow-purple-950/40 backdrop-blur-2xl sm:rounded-2xl">
-        <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-gradient-to-r from-purple-600/25 via-indigo-600/15 to-cyan-500/20 blur-3xl" />
+      <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto border-slate-200 bg-white shadow-xl sm:rounded-2xl">
+        <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-gradient-to-r from-blue-100 via-sky-50 to-indigo-100 blur-3xl" />
         <DialogHeader className="relative">
           <DialogTitle className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 via-indigo-500 to-pink-500 text-lg shadow-lg shadow-purple-600/40">
-              ⬛
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-lg text-white shadow-sm">
+              <QrCode className="h-5 w-5" />
             </span>
             Gerador de QR Code
           </DialogTitle>
@@ -68,7 +69,7 @@ export function QrCodeGenerator({ open, onOpenChange }: QrCodeGeneratorProps) {
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="relative grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+        <div className="relative grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
           {(
             [
               { id: "text", label: "Texto / Link" },
@@ -86,7 +87,7 @@ export function QrCodeGenerator({ open, onOpenChange }: QrCodeGeneratorProps) {
               {tab === t.id && (
                 <motion.div
                   layoutId="qr-tab"
-                  className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-600/60 to-indigo-600/40 ring-1 ring-purple-500/40"
+                  className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-slate-200"
                   transition={{ type: "spring", damping: 28, stiffness: 320 }}
                 />
               )}
@@ -151,7 +152,7 @@ function TextQrTab() {
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="qr-text" className="text-slate-300">
+        <Label htmlFor="qr-text" className="text-slate-600">
           Conteúdo do QR Code
         </Label>
         <Input
@@ -219,7 +220,7 @@ function GalleryQrTab() {
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="qr-gallery-title" className="text-slate-300">
+        <Label htmlFor="qr-gallery-title" className="text-slate-600">
           Título da galeria
         </Label>
         <Input
@@ -235,10 +236,10 @@ function GalleryQrTab() {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-6 text-center transition-all hover:border-purple-500/50 hover:bg-white/[0.06]"
+        className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition-all hover:border-blue-400 hover:bg-blue-50/50"
       >
-        <span className="text-2xl">🖼️</span>
-        <span className="text-sm text-slate-300">
+        <Images className="h-6 w-6 text-blue-600" />
+        <span className="text-sm text-slate-600">
           Clique para adicionar fotos e documentos
         </span>
         <span className="text-[11px] text-slate-500">Até 30 arquivos · salvo no Convex Storage</span>
@@ -259,15 +260,15 @@ function GalleryQrTab() {
               key={`${f.name}-${i}`}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-xs"
+              className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
             >
-              <span className="min-w-0 truncate text-slate-300">
+              <span className="min-w-0 truncate text-slate-600">
                 {f.name} <span className="text-slate-500">({Math.ceil(f.size / 1024)} KB)</span>
               </span>
               <button
                 type="button"
                 onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                className="shrink-0 text-slate-500 transition-colors hover:text-red-400"
+                className="shrink-0 text-slate-400 transition-colors hover:text-red-600"
                 aria-label={`Remover ${f.name}`}
               >
                 ✕
@@ -293,7 +294,7 @@ function GalleryQrTab() {
               Enviando arquivos…
             </span>
           ) : (
-            `⚡ Criar Galeria + QR (${files.length} arquivo${files.length === 1 ? "" : "s"})`
+            `Criar Galeria + QR (${files.length} arquivo${files.length === 1 ? "" : "s"})`
           )}
         </Button>
       ) : (
@@ -315,14 +316,17 @@ function GalleryResult({ gallery }: { gallery: CreatedGallery }) {
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-300">
-        ✅ Galeria criada ({gallery.mode === "convex" ? "hospedada no Convex" : "modo teste local"}) — aponte a câmera para o QR.
+      <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
+        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>
+          Galeria criada ({gallery.mode === "convex" ? "hospedada no Convex" : "modo teste local"}) — aponte a câmera para o QR.
+        </span>
       </div>
 
       <QrPreview png={png} busy={false} />
 
       <div className="space-y-1.5">
-        <Label className="text-slate-300">Link da galeria</Label>
+        <Label className="text-slate-600">Link da galeria</Label>
         <div className="flex items-center gap-2">
           <Input readOnly value={url} className="field-neon text-xs" />
           <Button
@@ -337,7 +341,7 @@ function GalleryResult({ gallery }: { gallery: CreatedGallery }) {
           href={url}
           target="_blank"
           rel="noreferrer"
-          className="inline-block pt-1 text-xs text-purple-300 underline-offset-2 hover:underline"
+          className="inline-block pt-1 text-xs text-blue-700 underline-offset-2 hover:underline"
         >
           Abrir galeria em nova aba →
         </a>
@@ -362,7 +366,7 @@ function ColorPicker({ style, onChange }: { style: QrStyle; onChange: (s: QrStyl
   // `QrStyle` é reexportado como type-only — ver abaixo.
   return (
     <div className="space-y-2">
-      <Label className="text-slate-300">Personalização</Label>
+      <Label className="text-slate-600">Personalização</Label>
       <div className="flex flex-wrap gap-2">
         {PRESET_COLORS.map((c) => (
           <button
@@ -371,8 +375,8 @@ function ColorPicker({ style, onChange }: { style: QrStyle; onChange: (s: QrStyl
             onClick={() => onChange({ ...style, dark: c.dark, light: c.light })}
             className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-all ${
               style.dark === c.dark
-                ? "border-purple-500/60 bg-purple-500/10 text-white"
-                : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/25"
+                ? "border-blue-500 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
             }`}
           >
             <span className="h-4 w-4 rounded-sm" style={{ background: c.dark }} />
@@ -381,22 +385,22 @@ function ColorPicker({ style, onChange }: { style: QrStyle; onChange: (s: QrStyl
         ))}
       </div>
       <div className="flex gap-3">
-        <label className="flex items-center gap-2 text-xs text-slate-400">
+        <label className="flex items-center gap-2 text-xs text-slate-500">
           Cor dos módulos
           <input
             type="color"
             value={style.dark}
             onChange={(e) => onChange({ ...style, dark: e.target.value })}
-            className="h-7 w-9 cursor-pointer rounded border border-white/10 bg-transparent"
+            className="h-7 w-9 cursor-pointer rounded border border-slate-200 bg-white"
           />
         </label>
-        <label className="flex items-center gap-2 text-xs text-slate-400">
+        <label className="flex items-center gap-2 text-xs text-slate-500">
           Fundo
           <input
             type="color"
             value={style.light}
             onChange={(e) => onChange({ ...style, light: e.target.value })}
-            className="h-7 w-9 cursor-pointer rounded border border-white/10 bg-transparent"
+            className="h-7 w-9 cursor-pointer rounded border border-slate-200 bg-white"
           />
         </label>
       </div>
@@ -414,7 +418,7 @@ function QrPreview({
   emptyHint?: string;
 }) {
   return (
-    <div className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-4">
       {busy ? (
         <Skeleton className="h-44 w-44" />
       ) : png ? (
@@ -425,10 +429,10 @@ function QrPreview({
           transition={{ duration: 0.25 }}
           src={png}
           alt="QR Code gerado"
-          className="h-44 w-44 rounded-lg shadow-[0_0_28px_-8px_rgba(139,92,246,0.55)]"
+          className="h-44 w-44 rounded-lg shadow-md"
         />
       ) : (
-        <div className="flex h-44 w-44 items-center justify-center rounded-lg border border-dashed border-white/10 text-center text-xs text-slate-500">
+        <div className="flex h-44 w-44 items-center justify-center rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400">
           {emptyHint ?? "O QR aparecerá aqui"}
         </div>
       )}

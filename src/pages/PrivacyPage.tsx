@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { ShieldCheck, FilePen, Database, Building2, Lock, Mail } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface Section {
-  icon: string;
+  icon: typeof ShieldCheck;
   title: string;
   paragraphs: string[];
   bullets?: string[];
@@ -13,7 +15,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   {
-    icon: "🛡️",
+    icon: ShieldCheck,
     title: "1. Conformidade com a LGPD",
     paragraphs: [
       "O PDFForge Brasil declara expresso respeito à Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD) e às demais normas de proteção de dados aplicáveis no Brasil.",
@@ -21,7 +23,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "📝",
+    icon: FilePen,
     title: "2. Tratamento dos Dados",
     paragraphs: [
       "Os dados preenchidos nos formulários (nomes, CPF/CNPJ, endereços, valores e demais informações do documento) são utilizados EXCLUSIVAMENTE para a compilação do PDF solicitado pelo usuário.",
@@ -33,7 +35,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "🗄️",
+    icon: Database,
     title: "3. Armazenamento e Controle pelo Usuário",
     paragraphs: [
       "Enquanto conectado ao banco em nuvem, os metadados dos documentos ficam armazenados no Convex, vinculados à sua conta. Em modo de teste local (sem conexão), tudo permanece apenas no armazenamento local do seu navegador.",
@@ -46,7 +48,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "🚫",
+    icon: Building2,
     title: "4. Compartilhamento com Terceiros",
     paragraphs: [
       "Garantimos que não vendemos, alugamos ou compartilhamos dados pessoais com terceiros para qualquer finalidade comercial ou publicitária.",
@@ -59,7 +61,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "🔒",
+    icon: Lock,
     title: "5. Segurança",
     paragraphs: [
       "Aplicamos medidas técnicas e administrativas para proteger os dados: transporte criptografado (HTTPS/TLS), isolamento de dados por usuário e acesso restrito por função. Senhas são armazenadas exclusivamente como hashes, nunca em texto puro.",
@@ -67,7 +69,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "📬",
+    icon: Mail,
     title: "6. Seus Direitos (Art. 18, LGPD)",
     paragraphs: [
       "Como titular, você pode solicitar: confirmação de tratamento, acesso aos dados, correção, anonimização, bloqueio ou eliminação de dados desnecessários, portabilidade e informação sobre compartilhamentos.",
@@ -81,13 +83,10 @@ export default function PrivacyPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-background/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between px-4 py-3.5">
-          <button onClick={() => nav("/")} className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 text-lg shadow-lg shadow-purple-600/30">
-              📄
-            </span>
-            <span className="text-base font-bold tracking-tight">PDFForge Brasil</span>
+          <button onClick={() => nav("/")} aria-label="PDFForge Brasil — início">
+            <Logo size={36} withText tagline="" />
           </button>
           <Button size="sm" variant="outline" onClick={() => nav("/")}>← Voltar</Button>
         </div>
@@ -97,7 +96,7 @@ export default function PrivacyPage() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Badge variant="success" className="mb-4">Lei nº 13.709/2018</Badge>
           <h1 className="mb-2 text-3xl font-bold md:text-4xl">Política de Privacidade</h1>
-          <p className="mb-8 text-sm text-slate-400">
+          <p className="mb-8 text-sm text-slate-500">
             Última atualização: setembro de 2026 · Transparência total sobre como seus dados são tratados.
           </p>
         </motion.div>
@@ -114,19 +113,19 @@ export default function PrivacyPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2.5 text-lg">
-                    <span className="text-xl">{s.icon}</span>
+                    <s.icon className="h-5 w-5 text-blue-600" />
                     {s.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {s.paragraphs.map((p, j) => (
-                    <p key={j} className="text-sm leading-relaxed text-slate-300">{p}</p>
+                    <p key={j} className="text-sm leading-relaxed text-slate-600">{p}</p>
                   ))}
                   {s.bullets && (
                     <ul className="space-y-2 pt-1">
                       {s.bullets.map((b, j) => (
-                        <li key={j} className="flex gap-2 text-sm leading-relaxed text-slate-400">
-                          <span className="mt-0.5 text-emerald-400">✓</span>
+                        <li key={j} className="flex gap-2 text-sm leading-relaxed text-slate-600">
+                          <span className="mt-0.5 text-emerald-600">✓</span>
                           <span>{b}</span>
                         </li>
                       ))}
@@ -139,10 +138,10 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      <footer className="border-t border-white/5 py-8">
+      <footer className="border-t border-slate-200 py-8">
         <div className="container mx-auto px-4 text-center text-xs text-slate-500">
           © 2026 PDFForge Brasil ·{" "}
-          <a href="/termos-de-servico" className="underline decoration-slate-600 underline-offset-2 hover:text-slate-300">
+          <a href="/termos-de-servico" className="underline decoration-slate-600 underline-offset-2 hover:text-slate-400">
             Termos de Serviço
           </a>
         </div>

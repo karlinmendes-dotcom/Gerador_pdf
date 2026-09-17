@@ -68,10 +68,10 @@ export function DocumentForm({
   };
 
   return (
-    <Card className="border-white/10 bg-white/[0.03]">
+    <Card className="border-slate-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600/30 to-cyan-500/20 text-2xl ring-1 ring-white/10">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-2xl">
             {schema.icon}
           </span>
           <span>
@@ -82,7 +82,7 @@ export function DocumentForm({
           </span>
         </CardTitle>
         <CardDescription className="pt-1">
-          {schema.description} Campos com <span className="text-purple-400">*</span> são obrigatórios.
+          {schema.description} Campos com <span className="text-blue-600">*</span> são obrigatórios.
         </CardDescription>
       </CardHeader>
 
@@ -102,10 +102,10 @@ export function DocumentForm({
             ))}
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-white/5 pt-5 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-end">
             {!hideDraft && onSaveDraft && (
               <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isLoading} className="sm:mr-auto">
-                💾 Salvar Rascunho (grátis)
+                Salvar Rascunho (grátis)
               </Button>
             )}
             <motion.div
@@ -119,12 +119,12 @@ export function DocumentForm({
                     <motion.span
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
-                      className="inline-block h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
+                      className="inline-block h-4 w-4 rounded-full border-2 border-slate-300 border-t-blue-600"
                     />
                     Processando...
                   </span>
                 ) : (
-                  submitLabel ?? `⚡ Gerar Documento Oficial (R$ ${price.toFixed(2).replace(".", ",")})`
+                  submitLabel ?? `Gerar Documento Oficial (R$ ${price.toFixed(2).replace(".", ",")})`
                 )}
               </Button>
             </motion.div>
@@ -166,10 +166,10 @@ function FieldInput({
       transition={{ duration: 0.3, delay: Math.min(index * 0.025, 0.3) }}
       className={spanClass}
     >
-      <Label htmlFor={id} className="mb-1.5 flex items-center justify-between text-slate-300">
+      <Label htmlFor={id} className="mb-1.5 flex items-center justify-between text-slate-600">
         <span>
           {field.label}
-          {field.required && <span className="ml-1 text-purple-400">*</span>}
+          {field.required && <span className="ml-1 text-blue-600">*</span>}
         </span>
         {field.type === "boolean" && (
           <span className="text-[10px] font-normal text-slate-500">opcional</span>
@@ -177,16 +177,16 @@ function FieldInput({
       </Label>
 
       {field.type === "boolean" ? (
-        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-colors hover:border-purple-500/40">
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-blue-400">
           <input
             id={id}
             type="checkbox"
             checked={value === "true"}
             onChange={(e) => onChange(e.target.checked ? "true" : "false")}
             onBlur={onBlur}
-            className="h-4 w-4 accent-purple-500"
+            className="h-4 w-4 accent-blue-600"
           />
-          <span className="text-sm text-slate-300">{field.description ?? "Sim"}</span>
+          <span className="text-sm text-slate-600">{field.description ?? "Sim"}</span>
         </label>
       ) : field.type === "enum" ? (
         <select
@@ -198,7 +198,7 @@ function FieldInput({
         >
           <option value="">Selecione…</option>
           {(field.options ?? []).map((opt) => (
-            <option key={opt} value={opt} className="bg-[#0d1220] text-white">
+            <option key={opt} value={opt} className="bg-white text-slate-900">
               {opt}
             </option>
           ))}

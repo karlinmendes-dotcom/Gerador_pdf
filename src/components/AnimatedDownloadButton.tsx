@@ -74,7 +74,7 @@ export function AnimatedDownloadButton({
             <motion.span
               animate={{ y: [-2, 3] }}
               transition={{ duration: 0.9, repeat: Infinity, ease: "easeIn" }}
-              className="absolute bottom-0 h-1.5 w-2.5 rounded-sm bg-gradient-to-b from-indigo-300 to-purple-500"
+              className="absolute bottom-0 h-1.5 w-2.5 rounded-sm bg-gradient-to-b from-sky-400 to-blue-600"
             />
           </motion.span>
         ) : phase === "done" ? (

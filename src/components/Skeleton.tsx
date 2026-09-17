@@ -9,7 +9,7 @@ export function Skeleton({ className }: { className?: string }) {
     <div
       aria-hidden
       className={cn(
-        "animate-pulse rounded-xl border border-white/[0.06] bg-gradient-to-r from-white/[0.04] via-white/[0.08] to-white/[0.04] bg-[length:200%_100%]",
+        "animate-pulse rounded-xl border border-slate-100 bg-gradient-to-r from-slate-100 via-slate-200/70 to-slate-100 bg-[length:200%_100%]",
         className
       )}
     />
@@ -19,7 +19,7 @@ export function Skeleton({ className }: { className?: string }) {
 /** Skeleton do card de documento no dashboard. */
 export function DocumentCardSkeleton() {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex min-w-0 items-center gap-3">
         <Skeleton className="h-10 w-10 shrink-0" />
         <div className="min-w-0 space-y-2">
@@ -39,9 +39,9 @@ export function DocumentCardSkeleton() {
 /** Skeleton das estatísticas do dashboard. */
 export function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {[0, 1, 2].map((i) => (
-        <Skeleton key={i} className="h-[76px] w-full" />
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} className="h-[86px] w-full" />
       ))}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +125,7 @@ export default function GalleryPage() {
             <DocumentCardSkeleton />
           </div>
         ) : error ? (
-          <Card className="mx-auto max-w-lg border-red-500/25 bg-red-500/5 text-center">
+          <Card className="mx-auto max-w-lg border-red-200 bg-red-50 text-center">
             <CardHeader>
               <CardTitle className="text-lg">Galeria indisponível</CardTitle>
               <CardDescription>{error}</CardDescription>
@@ -138,8 +139,8 @@ export default function GalleryPage() {
         ) : gallery ? (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mx-auto max-w-2xl space-y-6">
             <div className="text-center">
-              <Badge variant="secondary" className="mb-3 border-purple-500/25 bg-purple-500/10 text-purple-300">
-                {gallery.mode === "convex" ? "🌐 Galeria hospedada" : "🧪 Galeria de teste (local)"}
+              <Badge variant="secondary" className="mb-3 border-blue-200 bg-blue-50 text-blue-700">
+                {gallery.mode === "convex" ? "Galeria hospedada" : "Galeria de teste (local)"}
               </Badge>
               <h1 className="mb-1 text-2xl font-extrabold tracking-tight md:text-3xl">{gallery.title}</h1>
               <p className="text-xs text-slate-500">
@@ -151,12 +152,14 @@ export default function GalleryPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {gallery.items.map((item, i) => (
                 <motion.div key={item.fileId + i} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.06, 0.5) }}>
-                  <Card className="group h-full overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-purple-500/40 hover:shadow-[0_0_30px_-8px_rgba(139,92,246,0.45)]">
-                    <div className="flex h-40 items-center justify-center overflow-hidden bg-white/[0.03]">
+                  <Card className="group h-full overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md">
+                    <div className="flex h-40 items-center justify-center overflow-hidden bg-slate-50">
                       {item.mime.startsWith("image/") && item.src ? (
                         <img src={item.src} alt={item.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      ) : item.mime === "application/pdf" ? (
+                        <FileText className="h-12 w-12 text-red-500" />
                       ) : (
-                        <span className="text-4xl">{item.mime === "application/pdf" ? "📄" : "🗂️"}</span>
+                        <FolderOpen className="h-12 w-12 text-slate-400" />
                       )}
                     </div>
                     <CardContent className="space-y-2 p-4">
@@ -167,7 +170,7 @@ export default function GalleryPage() {
                           href={item.src}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-block text-xs text-purple-300 underline-offset-2 hover:underline"
+                          className="inline-block text-xs text-blue-700 underline-offset-2 hover:underline"
                         >
                           Abrir em nova aba →
                         </a>

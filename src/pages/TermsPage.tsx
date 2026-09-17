@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { Handshake, FileText, CreditCard, FilePen, Scale } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Section {
-  icon: string;
+  icon: typeof FileText;
   title: string;
   paragraphs: string[];
   bullets?: string[];
@@ -12,7 +14,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   {
-    icon: "🎯",
+    icon: Handshake,
     title: "1. Objeto do Serviço",
     paragraphs: [
       "O PDFForge Brasil é uma plataforma de ferramentas para geração automatizada de documentos jurídicos e administrativos pessoais — contratos, recibos e declarações — compilados em PDF a partir de informações fornecidas pelo próprio usuário.",
@@ -20,7 +22,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "⚖️",
+    icon: Scale,
     title: "2. Responsabilidade do Usuário",
     paragraphs: [
       "O usuário é 100% responsável pela exatidão, veracidade e completude dos dados inseridos nos formulários. Todas as informações preenchidas são transcritas integralmente para o documento final, sem verificação curatorial por parte da plataforma.",
@@ -29,7 +31,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "✍️",
+    icon: FilePen,
     title: "3. Assinatura Eletrônica e Validade Legal",
     paragraphs: [
       "O PDF gerado é um documento particular válido entre as partes, nos termos do Código Civil brasileiro. Para dotá-lo de validade jurídica federal com presunção de veracidade, recomenda-se a assinatura digital gratuita pelo Portal Gov.br.",
@@ -42,7 +44,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "💳",
+    icon: CreditCard,
     title: "4. Pagamentos",
     paragraphs: [
       "O preenchimento dos formulários e a navegação são gratuitos. A cobrança ocorre apenas por emissão — no momento do download do PDF oficial — via PIX, processada pelo gateway Mercado Pago.",
@@ -56,7 +58,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    icon: "📜",
+    icon: FileText,
     title: "5. Disposições Gerais",
     paragraphs: [
       "Estes Termos são regidos pelas leis da República Federativa do Brasil. Ao utilizar a plataforma, o usuário declara ter lido e concordado com este documento e com a Política de Privacidade.",
@@ -70,13 +72,10 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-background/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between px-4 py-3.5">
-          <button onClick={() => nav("/")} className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 text-lg shadow-lg shadow-purple-600/30">
-              📄
-            </span>
-            <span className="text-base font-bold tracking-tight">PDFForge Brasil</span>
+          <button onClick={() => nav("/")} aria-label="PDFForge Brasil — início">
+            <Logo size={36} withText tagline="" />
           </button>
           <Button size="sm" variant="outline" onClick={() => nav("/")}>← Voltar</Button>
         </div>
@@ -85,7 +84,7 @@ export default function TermsPage() {
       <main className="container mx-auto max-w-3xl px-4 py-12">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <h1 className="mb-2 text-3xl font-bold md:text-4xl">Termos de Serviço</h1>
-          <p className="mb-8 text-sm text-slate-400">
+          <p className="mb-8 text-sm text-slate-500">
             Última atualização: setembro de 2026 · Documento estático, sem coleta automática de dados.
           </p>
         </motion.div>
@@ -102,19 +101,19 @@ export default function TermsPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2.5 text-lg">
-                    <span className="text-xl">{s.icon}</span>
+                    <s.icon className="h-5 w-5 text-blue-600" />
                     {s.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {s.paragraphs.map((p, j) => (
-                    <p key={j} className="text-sm leading-relaxed text-slate-300">{p}</p>
+                    <p key={j} className="text-sm leading-relaxed text-slate-600">{p}</p>
                   ))}
                   {s.bullets && (
                     <ul className="space-y-2 pt-1">
                       {s.bullets.map((b, j) => (
-                        <li key={j} className="flex gap-2 text-sm leading-relaxed text-slate-400">
-                          <span className="mt-0.5 text-purple-400">▸</span>
+                        <li key={j} className="flex gap-2 text-sm leading-relaxed text-slate-600">
+                          <span className="mt-0.5 text-blue-600">▸</span>
                           <span>{b}</span>
                         </li>
                       ))}
@@ -127,10 +126,10 @@ export default function TermsPage() {
         </div>
       </main>
 
-      <footer className="border-t border-white/5 py-8">
+      <footer className="border-t border-slate-200 py-8">
         <div className="container mx-auto px-4 text-center text-xs text-slate-500">
           © 2026 PDFForge Brasil ·{" "}
-          <a href="/politica-de-privacidade" className="underline decoration-slate-600 underline-offset-2 hover:text-slate-300">
+          <a href="/politica-de-privacidade" className="underline decoration-slate-600 underline-offset-2 hover:text-blue-700">
             Política de Privacidade
           </a>
         </div>

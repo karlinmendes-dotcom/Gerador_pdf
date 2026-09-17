@@ -27,6 +27,21 @@ export default defineSchema({
     .index("by_userId_and_type", ["userId", "documentType"])
     .index("by_paymentId", ["paymentId"]),
 
+  /** Transações PIX criadas no checkout (log de pagamentos). */
+  payments: defineTable({
+    paymentId: v.string(),
+    documentId: v.optional(v.id("documents")),
+    userId: v.optional(v.id("users")),
+    amount: v.number(),
+    currency: v.string(),
+    status: v.string(),
+    provider: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_paymentId", ["paymentId"])
+    .index("by_userId", ["userId"]),
+
   /** Galeria hospedada gerada pelo Módulo Gerador de QR Code. */
   qrGalleries: defineTable({
     /** Chave curta usada na URL pública /g/:key. */

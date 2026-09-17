@@ -12,6 +12,7 @@
   "dependencies": {
     "@ai-sdk/google": "^4.0.69",
     "@ai-sdk/groq": "^4.0.41",
+    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@pdfme/common": "5.5.10",
     "@pdfme/generator": "5.5.10",
     "@pdfme/schemas": "5.5.10",

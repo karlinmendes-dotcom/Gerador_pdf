@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
+import { LogoMark } from "@/components/Logo";
 
 interface AuthModalProps {
   open: boolean;
@@ -58,9 +60,9 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
 
   return (
     <Dialog open={open} onOpenChange={(o) => onOpenChange(o)}>
-      <DialogContent className="max-w-md overflow-hidden border-white/10 bg-zinc-900/80 shadow-2xl shadow-purple-950/40 backdrop-blur-2xl sm:rounded-2xl">
-        {/* Luz de gradiente no topo do modal */}
-        <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-gradient-to-r from-purple-600/30 via-indigo-600/20 to-cyan-500/20 blur-3xl" />
+      <DialogContent className="max-w-md overflow-hidden border-slate-200 bg-white shadow-xl sm:rounded-2xl">
+        {/* Luz suave no topo do modal */}
+        <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-gradient-to-r from-blue-100 via-sky-50 to-indigo-100 blur-3xl" />
 
         <DialogHeader className="relative">
           <DialogTitle className="flex items-center gap-2.5">
@@ -68,9 +70,9 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
               initial={{ rotate: -8, scale: 0.85 }}
               animate={{ rotate: 0, scale: 1 }}
               transition={{ type: "spring", damping: 12, stiffness: 200 }}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 via-indigo-500 to-pink-500 text-lg shadow-lg shadow-purple-600/40"
+              className="flex h-9 w-9 items-center justify-center"
             >
-              📄
+              <LogoMark size={36} className="rounded-lg shadow-sm" />
             </motion.span>
             {mode === "signin" ? "Entrar na conta" : "Criar conta grátis"}
           </DialogTitle>
@@ -80,20 +82,20 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="relative grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+        <div className="relative grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
           {(["signin", "signup"] as Mode[]).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => switchMode(m)}
               className={`relative rounded-lg py-2 text-sm font-medium transition-colors ${
-                mode === m ? "text-white" : "text-slate-400 hover:text-slate-200"
+                mode === m ? "text-blue-700" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {mode === m && (
                 <motion.div
                   layoutId="auth-tab"
-                  className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-600/60 to-purple-600/40 ring-1 ring-purple-500/40"
+                  className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-slate-200"
                   transition={{ type: "spring", damping: 28, stiffness: 320 }}
                 />
               )}
@@ -114,7 +116,7 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
                 className="overflow-hidden"
               >
                 <div className="space-y-1.5 pb-1">
-                  <Label htmlFor="auth-name" className="text-slate-300">Nome completo</Label>
+                  <Label htmlFor="auth-name" className="text-slate-600">Nome completo</Label>
                   <Input
                     id="auth-name"
                     placeholder="Maria da Silva"
@@ -129,7 +131,7 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
           </AnimatePresence>
 
           <div className="space-y-1.5">
-            <Label htmlFor="auth-email" className="text-slate-300">E-mail</Label>
+            <Label htmlFor="auth-email" className="text-slate-600">E-mail</Label>
             <Input
               id="auth-email"
               type="email"
@@ -143,7 +145,7 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="auth-password" className="text-slate-300">Senha</Label>
+            <Label htmlFor="auth-password" className="text-slate-600">Senha</Label>
             <Input
               id="auth-password"
               type="password"
@@ -161,7 +163,7 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
             <motion.p
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-400"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
             >
               {error}
             </motion.p>
@@ -177,7 +179,7 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
             ) : mode === "signin" ? (
               "Entrar →"
             ) : (
-              "Criar conta grátis ✨"
+              "Criar conta grátis"
             )}
           </Button>
 
@@ -186,14 +188,14 @@ export function AuthModal({ open, onOpenChange, reason, onSuccess }: AuthModalPr
             onClick={fillDemo}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="w-full text-center text-[11px] text-slate-500 transition-colors hover:text-slate-300"
+            className="w-full text-center text-[11px] text-slate-500 transition-colors hover:text-slate-600"
           >
-            Preencher dados de demonstração
+            <Wand2 className="mr-1 inline h-3 w-3" /> Preencher dados de demonstração
           </motion.button>
         </form>
 
-        <div className="flex items-center justify-center gap-2 border-t border-white/5 pt-3">
-          <Badge variant="secondary" className="text-[10px]">🔒 Dados no Convex</Badge>
+        <div className="flex items-center justify-center gap-2 border-t border-slate-100 pt-3">
+          <Badge variant="secondary" className="text-[10px]">Dados no Convex</Badge>
           <Badge variant="success" className="text-[10px]">Grátis para começar</Badge>
         </div>
       </DialogContent>

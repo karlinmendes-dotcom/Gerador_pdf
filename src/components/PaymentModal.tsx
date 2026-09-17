@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { Zap, Check, Copy, AlertTriangle, Download, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,10 +110,12 @@ export function PaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="max-w-md border-white/10 bg-[#0d1220] sm:rounded-2xl">
+      <DialogContent className="max-w-md border-slate-200 bg-white sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 text-sm">⚡</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm text-white">
+              <Zap className="h-4 w-4" />
+            </span>
             Pagamento via PIX
           </DialogTitle>
           <DialogDescription>
@@ -135,7 +138,7 @@ export function PaymentModal({
 
         {flow === "creating" && (
           <div className="py-10 text-center">
-            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="mx-auto h-10 w-10 rounded-full border-2 border-purple-500/30 border-t-purple-500" />
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="mx-auto h-10 w-10 rounded-full border-2 border-blue-200 border-t-blue-600" />
             <p className="mt-4 text-sm text-slate-400">Gerando cobrança PIX...</p>
           </div>
         )}
@@ -154,18 +157,18 @@ export function PaymentModal({
 
             {pix.mock && (
               <p className="text-center text-[11px] text-amber-400/80">
-                🧪 Modo de teste local — o pagamento é aprovado automaticamente em ~8s
+                Modo de teste local — o pagamento é aprovado automaticamente em ~8s
               </p>
             )}
 
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">PIX Copia e Cola</p>
               <div className="flex gap-2">
-                <div className="max-h-20 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 font-mono text-[10px] leading-relaxed text-slate-300">
+                <div className="max-h-20 flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[10px] leading-relaxed text-slate-600">
                   {pix.qrCode ?? "—"}
                 </div>
                 <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0">
-                  {copied ? "✅" : "📋"}
+                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -193,21 +196,23 @@ export function PaymentModal({
               transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.1 }}
               className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-4xl ring-2 ring-emerald-500/40"
             >
-              ✅
+              <Check className="h-8 w-8 text-emerald-600" />
             </motion.div>
             <h3 className="text-lg font-bold text-emerald-400">Pagamento Aprovado!</h3>
             <Badge variant="success">PIX confirmado · PDF liberado</Badge>
             <Button onClick={close} className="w-full">
-              📥 Baixar Documento
+              <Download className="mr-1.5 inline h-4 w-4" /> Baixar Documento
             </Button>
           </motion.div>
         )}
 
         {flow === "error" && (
           <div className="space-y-4 py-4 text-center">
-            <div className="text-5xl">⚠️</div>
+            <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
             <p className="text-sm text-red-400">{error}</p>
-            <Button onClick={createCharge} className="w-full">🔄 Tentar novamente</Button>
+            <Button onClick={createCharge} className="w-full">
+              <RotateCcw className="mr-1.5 inline h-4 w-4" /> Tentar novamente
+            </Button>
           </div>
         )}
       </DialogContent>

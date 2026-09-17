@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FileText, QrCode, Grid2X2, LogOut } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 
@@ -57,16 +59,16 @@ export function ProfileMenu({ onOpenQrGenerator, onNavigate, compact }: ProfileM
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full ring-1 ring-white/15 transition-shadow hover:ring-purple-500/50 hover:drop-shadow-[0_0_10px_rgba(139,92,246,0.45)]"
+        className="flex items-center gap-2 rounded-full ring-1 ring-slate-200 transition-shadow hover:ring-blue-400 hover:shadow-md"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Menu do perfil"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-pink-500 text-[11px] font-bold text-white shadow-lg shadow-purple-600/30">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white shadow-sm">
           {initials}
         </span>
         {!compact && (
-          <span className="hidden max-w-[110px] truncate pr-2 text-xs text-slate-300 sm:block">
+          <span className="hidden max-w-[110px] truncate pr-2 text-xs text-slate-600 sm:block">
             {user.name}
           </span>
         )}
@@ -79,11 +81,11 @@ export function ProfileMenu({ onOpenQrGenerator, onNavigate, compact }: ProfileM
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/90 shadow-2xl shadow-black/50 backdrop-blur-xl"
+            className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
             role="menu"
           >
             {/* Cabeçalho da conta */}
-            <div className="border-b border-white/5 bg-gradient-to-r from-purple-600/15 via-indigo-600/10 to-transparent px-4 py-3">
+            <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
               <p className="truncate text-sm font-semibold">{user.name}</p>
               <p className="truncate text-[11px] text-slate-400">{user.email}</p>
             </div>
@@ -91,33 +93,37 @@ export function ProfileMenu({ onOpenQrGenerator, onNavigate, compact }: ProfileM
             <div className="p-1.5 text-sm">
               <MenuItem
                 onClick={() => go("documents")}
-                icon="📄"
+                icon={<FileText className="h-4 w-4" />}
                 label="Meus Documentos"
               />
-              <MenuItem onClick={() => go("pix")} icon="💠" label="Histórico de Pix" />
+              <MenuItem
+                onClick={() => go("pix")}
+                icon={<QrCode className="h-4 w-4" />}
+                label="Histórico de Pix"
+              />
               {onOpenQrGenerator && (
                 <MenuItem
                   onClick={() => {
                     setOpen(false);
                     onOpenQrGenerator();
                   }}
-                  icon="⬛"
+                  icon={<Grid2X2 className="h-4 w-4" />}
                   label="Gerador de QR Code"
                 />
               )}
             </div>
 
-            <div className="border-t border-white/5 p-1.5">
+            <div className="border-t border-slate-100 p-1.5">
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
                   signOut();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
                 role="menuitem"
               >
-                <span>🚪</span> Sair da conta
+                <LogOut className="h-4 w-4" /> Sair da conta
               </button>
             </div>
           </motion.div>
@@ -127,15 +133,15 @@ export function ProfileMenu({ onOpenQrGenerator, onNavigate, compact }: ProfileM
   );
 }
 
-function MenuItem({ onClick, icon, label }: { onClick: () => void; icon: string; label: string }) {
+function MenuItem({ onClick, icon, label }: { onClick: () => void; icon: ReactNode; label: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white"
+      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
       role="menuitem"
     >
-      <span className="text-base">{icon}</span>
+      <span className="text-blue-600">{icon}</span>
       {label}
     </button>
   );

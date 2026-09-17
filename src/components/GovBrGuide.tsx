@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Download, Lock, PenLine } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,21 +11,21 @@ interface GovBrGuideProps {
 
 const STEPS = [
   {
-    icon: "📥",
+    icon: Download,
     title: "Baixe o PDF",
     desc: "Gere e baixe o documento aqui no PDFForge Brasil.",
     url: undefined as string | undefined,
     cta: undefined as string | undefined,
   },
   {
-    icon: "🔐",
+    icon: Lock,
     title: "Acesse o assinador do ITI",
     desc: "Entre em assinador.iti.br com sua conta Gov.br — nível Prata ou Ouro.",
     url: "https://assinador.iti.br",
     cta: "assinador.iti.br",
   },
   {
-    icon: "✍️",
+    icon: PenLine,
     title: "Carregue e assine",
     desc: "Envie o PDF e posicione sua assinatura digital. Gratuito, com validade jurídica federal (MP 2.200-2/2001 / ICP-Brasil).",
     url: undefined as string | undefined,
@@ -85,13 +86,13 @@ export function GovBrGuide({ compact }: GovBrGuideProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.4 }}
-              className="relative rounded-xl border border-white/10 bg-white/[0.03] p-4"
+              className="relative rounded-xl border border-slate-200 bg-white p-4"
             >
               <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-600">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600/30 to-cyan-500/20 text-xl ring-1 ring-white/10">
-                {step.icon}
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-blue-50">
+                <step.icon className="h-5 w-5 text-blue-600" />
               </div>
               <p className="text-sm font-medium text-white">{step.title}</p>
               <p className="mt-1 text-xs leading-relaxed text-slate-400">{step.desc}</p>

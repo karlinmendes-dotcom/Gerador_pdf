@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Wand2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: Ai
     <Card className="border-dashed border-2 border-primary/30">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <span className="text-xl">✨</span> Gerar com IA
+          <Wand2 className="h-4 w-4 text-blue-600" /> Gerar com IA
         </CardTitle>
         <CardDescription>
           {fillOnly
@@ -60,7 +61,7 @@ export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: Ai
       </CardHeader>
       <CardContent className="space-y-4">
         <Button variant="outline" size="sm" onClick={() => setText(EXAMPLES[documentType] ?? "")}>
-          📝 Exemplo
+          Exemplo
         </Button>
 
         <div className="space-y-2">
@@ -80,12 +81,12 @@ export function AiTextInput({ documentType, onGenerated, onError, fillOnly }: Ai
         </div>
 
         <Button onClick={handleGenerate} disabled={loading || !text.trim()} className="w-full" size="lg">
-          {loading ? "Processando..." : `🤖 Gerar com ${info[provider].name}`}
+          {loading ? "Processando..." : `Gerar com ${info[provider].name}`}
         </Button>
 
         {mockNotice && (
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-            ⚠️ Modo offline (teste): chaves de IA não configuradas — preenchido com <strong>dados de exemplo</strong>. Revise antes de gerar o PDF.
+            Modo offline (teste): chaves de IA não configuradas — preenchido com <strong>dados de exemplo</strong>. Revise antes de gerar o PDF.
           </p>
         )}
       </CardContent>
