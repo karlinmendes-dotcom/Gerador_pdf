@@ -14,7 +14,8 @@ import { AuthModal } from "@/components/AuthModal";
 import { ReceiptBook } from "@/components/ReceiptBook";
 import { GovBrGuide } from "@/components/GovBrGuide";
 import { QrCodeGenerator } from "@/components/QrCodeGenerator";
-import { Logo } from "@/components/Logo";
+import { LogoMark } from "@/components/Logo";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { DocIcon } from "@/components/DocIcon";
 import { TrashTarget } from "@/components/TrashTarget";
 import { StorageBar } from "@/components/StorageBar";
@@ -46,6 +47,7 @@ import {
   Banknote,
   FileStack,
   QrCode,
+  Search,
 } from "lucide-react";
 
 type View = "dashboard" | "docs" | "new" | "receipts" | "pix" | "settings";
@@ -106,6 +108,7 @@ export default function DashboardPage() {
   const signOut = useAuth((s) => s.signOut);
 
   const [view, setView] = useState<View>("dashboard");
+  const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [loading] = useState(false);
   const [payDoc, setPayDoc] = useState<string | null>(null);
@@ -133,6 +136,24 @@ export default function DashboardPage() {
   );
   const pendingInstallments = allReceipts.filter((r) => r.status === "pending").length;
   const totalMoved = paidDocs.reduce((sum, d) => sum + getPrice(d.documentType), 0);
+
+  /** Busca global do header: título, parte envolvida ou código. */
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredDocs = normalizedQuery
+    ? userDocs.filter((d) =>
+        d.title.toLowerCase().includes(normalizedQuery) ||
+        getCounterpart(d).toLowerCase().includes(normalizedQuery) ||
+        d._id.toLowerCase().includes(normalizedQuery)
+      )
+    : userDocs;
+  const hasPendingInstallments = (docId: string) =>
+    allReceipts.some((r) => r.documentId === docId && r.status === "pending");
+  /** Corpo principal: documentos organizados por colunas de status. */
+  const kanban = {
+    review: filteredDocs.filter((d) => d.status === "draft"),
+    processing: filteredDocs.filter((d) => d.status === "paid" && hasPendingInstallments(d._id)),
+    done: filteredDocs.filter((d) => d.status === "paid" && !hasPendingInstallments(d._id)),
+  };
 
   /** Rota desbloqueada: nenhum gate bloqueia o carregamento — o dashboard
    * funciona sempre (modo visitante usa os dados locais do dispositivo). */
@@ -313,10 +334,14 @@ export default function DashboardPage() {
   ] as const;
 
   const sidebar = (
-    <aside className="flex h-full w-64 flex-col border-r border-slate-200 bg-white">
-      <div className="flex items-center border-b border-slate-200 px-5 py-4">
-        <button type="button" onClick={() => nav("/")} aria-label="Início">
-          <Logo size={36} tagline="Gerador de Documentos" />
+    <aside className="flex h-full w-64 flex-col bg-[#0B1F3F] text-blue-50">
+      <div className="border-b border-white/10 px-5 py-4">
+        <button type="button" onClick={() => nav("/")} aria-label="Início" className="flex items-center gap-2.5">
+          <LogoMark size={34} />
+          <span className="text-left leading-tight">
+            <span className="block text-sm font-bold tracking-tight text-white">PDFForge</span>
+            <span className="block text-[10px] text-blue-200/70">Painel de Gestão</span>
+          </span>
         </button>
       </div>
 
@@ -334,41 +359,47 @@ export default function DashboardPage() {
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
               view === item.id
-                ? "bg-blue-50 text-blue-700"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-950/40"
+                : "text-blue-100/70 hover:bg-white/5 hover:text-white"
             )}
           >
-            <item.icon className={cn("h-4 w-4", view === item.id ? "text-blue-600" : "text-slate-400")} />
+            <item.icon className={cn("h-4 w-4", view === item.id ? "text-white" : "text-blue-200/60")} />
             {item.label}
+            {view === item.id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-300" />}
           </button>
         ))}
       </nav>
 
-      <div className="space-y-2 border-t border-slate-200 p-4">
+      <div className="space-y-2 border-t border-white/10 p-4">
         {user ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+            <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
                 {user.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0 leading-tight">
-                <p className="truncate text-xs font-medium text-slate-900">{user.name}</p>
-                <p className="truncate text-[10px] text-slate-500">{user.email}</p>
+                <p className="truncate text-xs font-medium text-white">{user.name}</p>
+                <p className="truncate text-[10px] text-blue-200/60">{user.email}</p>
               </div>
             </div>
             <button
               onClick={signOut}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-slate-500 transition-colors hover:text-red-600"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-blue-100/60 transition-colors hover:bg-white/5 hover:text-red-300"
             >
               <LogOut className="h-3.5 w-3.5" /> Sair da conta
             </button>
           </div>
         ) : (
-          <Button size="sm" variant="outline" className="w-full" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
-            <LogIn className="mr-1.5 h-3.5 w-3.5" /> Entrar / Cadastrar
-          </Button>
+          <div className="space-y-2">
+            <p className="px-1 text-[10px] leading-relaxed text-blue-200/60">
+              Entre para salvar seus documentos na nuvem e emitir PDFs oficiais.
+            </p>
+            <Button size="sm" className="w-full" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
+              <LogIn className="mr-1.5 h-3.5 w-3.5" /> Entrar / Cadastrar
+            </Button>
+          </div>
         )}
-        <button onClick={() => nav("/")} className="text-xs text-slate-500 transition-colors hover:text-slate-700">
+        <button onClick={() => nav("/")} className="text-xs text-blue-200/60 transition-colors hover:text-white">
           ← Voltar ao site
         </button>
       </div>
@@ -388,10 +419,14 @@ export default function DashboardPage() {
       <div className="fixed inset-y-0 left-0 z-40 hidden md:block">{sidebar}</div>
 
       <div className="md:pl-64">
-        {/* Topbar corporativa */}
+        {/* Header do sistema: logo reduzido · busca central · usuário autenticado */}
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-          <div className="flex h-14 items-center justify-between px-4 md:px-8">
-            <div className="flex items-center gap-3">
+          <div className="flex h-16 items-center gap-3 px-4 md:px-8">
+            <button type="button" onClick={() => nav("/")} aria-label="Início" className="flex items-center gap-2 md:hidden">
+              <LogoMark size={30} />
+              <span className="text-sm font-bold text-slate-900">PDFForge</span>
+            </button>
+            <div className="hidden items-center gap-2 md:flex">
               <span className="text-sm font-semibold text-slate-900">
                 {NAV_ITEMS.find((i) => i.id === view)?.label ?? "Painel"}
               </span>
@@ -401,19 +436,42 @@ export default function DashboardPage() {
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => setQrOpen(true)}>
-                QR Code
-              </Button>
+
+            {/* Busca central */}
+            <div className="relative mx-auto hidden w-full max-w-md sm:block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por documento, parte envolvida ou código…"
+                className="h-9 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* Área do usuário */}
+            <div className="ml-auto flex items-center gap-2">
               {user ? (
-                <Button size="sm" onClick={() => setView("new")}>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Novo Documento
-                </Button>
+                <ProfileMenu onNavigate={(v) => setView(v === "documents" ? "docs" : "pix")} />
               ) : (
-                <Button size="sm" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
-                  <LogIn className="mr-1.5 h-3.5 w-3.5" /> Entrar
-                </Button>
+                <>
+                  <Badge variant="secondary" className="text-[10px] sm:hidden">Visitante</Badge>
+                  <Button size="sm" onClick={() => { setAuthReason("Crie sua conta grátis para salvar seus documentos na nuvem."); setAuthOpen(true); }}>
+                    <LogIn className="mr-1.5 h-3.5 w-3.5" /> Entrar / Cadastrar
+                  </Button>
+                </>
               )}
+            </div>
+          </div>
+          {/* Busca mobile */}
+          <div className="border-t border-slate-100 px-4 py-2 sm:hidden">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar documentos…"
+                className="h-9 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              />
             </div>
           </div>
         </header>
@@ -483,6 +541,37 @@ export default function DashboardPage() {
 
                 <StorageBar documents={userDocs} receipts={allReceipts} />
 
+                {/* Painel de gestão: documentos organizados por colunas de status */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <KanbanColumn
+                    title="Em Revisão"
+                    hint="Rascunhos aguardando pagamento"
+                    dot="bg-amber-500"
+                    docs={kanban.review}
+                    onOpen={(doc) => setReceiptsDoc(doc)}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                  />
+                  <KanbanColumn
+                    title="Aprovação"
+                    hint="Pagos com parcelas em aberto"
+                    dot="bg-purple-500"
+                    docs={kanban.processing}
+                    onOpen={(doc) => setReceiptsDoc(doc)}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                  />
+                  <KanbanColumn
+                    title="Concluído"
+                    hint="Quitados e liberados para download"
+                    dot="bg-emerald-500"
+                    docs={kanban.done}
+                    onOpen={(doc) => setReceiptsDoc(doc)}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                  />
+                </div>
+
                 {/* Tabela de documentos (padrão corporativo) */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -503,13 +592,17 @@ export default function DashboardPage() {
                         <DocumentCardSkeleton />
                         <DocumentCardSkeleton />
                       </>
-                    ) : userDocs.length === 0 ? (
+                    ) : filteredDocs.length === 0 ? (
                       <div className="py-12 text-center">
                         <FileText className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-                        <p className="mb-4 text-sm text-slate-500">Nenhum documento ainda.</p>
-                        <Button onClick={() => setView("new")}>
-                          <Plus className="mr-2 h-4 w-4" /> Criar primeiro documento
-                        </Button>
+                        <p className="mb-4 text-sm text-slate-500">
+                          {query.trim() ? `Nenhum resultado para “${query.trim()}”.` : "Nenhum documento ainda."}
+                        </p>
+                        {!query.trim() && (
+                          <Button onClick={() => setView("new")}>
+                            <Plus className="mr-2 h-4 w-4" /> Criar primeiro documento
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
@@ -525,7 +618,7 @@ export default function DashboardPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {userDocs.slice(0, 8).map((doc, i) => {
+                            {filteredDocs.slice(0, 8).map((doc, i) => {
                               const counterpart = getCounterpart(doc);
                               return (
                                 <motion.tr
@@ -588,9 +681,9 @@ export default function DashboardPage() {
                             })}
                           </tbody>
                         </table>
-                        {userDocs.length > 8 && (
+                        {filteredDocs.length > 8 && (
                           <p className="pt-3 text-center text-xs text-slate-500">
-                            Exibindo 8 de {userDocs.length} documentos — use "Meus Documentos" para ver todos.
+                            Exibindo 8 de {filteredDocs.length} documentos — use "Meus Documentos" para ver todos.
                           </p>
                         )}
                       </div>
@@ -948,6 +1041,87 @@ export default function DashboardPage() {
 
       {/* Gerador de QR Code */}
       <QrCodeGenerator open={qrOpen} onOpenChange={setQrOpen} />
+    </div>
+  );
+}
+
+/** Coluna do painel de status com cards de gerenciamento rápido. */
+function KanbanColumn({
+  title,
+  hint,
+  dot,
+  docs,
+  onOpen,
+  onDownload,
+  onDelete,
+}: {
+  title: string;
+  hint: string;
+  dot: string;
+  docs: Document[];
+  onOpen: (doc: Document) => void;
+  onDownload: (doc: Document) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+        <span className={cn("h-2 w-2 shrink-0 rounded-full", dot)} />
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">{title}</p>
+          <p className="truncate text-[10px] text-slate-400">{hint}</p>
+        </div>
+        <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+          {docs.length}
+        </span>
+      </div>
+      <div className="flex-1 space-y-2.5 p-3">
+        {docs.length === 0 ? (
+          <p className="py-8 text-center text-xs text-slate-400">Nenhum documento</p>
+        ) : (
+          docs.map((doc, i) => (
+            <motion.div
+              key={doc._id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.04, 0.3) }}
+              className="group rounded-lg border border-slate-200 p-3 transition-all hover:border-blue-300 hover:shadow-sm"
+            >
+              <button type="button" onClick={() => onOpen(doc)} className="flex w-full items-center gap-2.5 text-left">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+                  <DocIcon documentType={doc.documentType} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-semibold text-slate-900 group-hover:text-blue-700">
+                    {doc.title}
+                  </span>
+                  <span className="block truncate text-[10px] text-slate-500">
+                    {getCounterpart(doc) !== "—" ? getCounterpart(doc) : getDocType(doc.documentType)?.name}
+                  </span>
+                </span>
+              </button>
+              <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
+                <StatusBadge status={doc.status} />
+                <div className="flex items-center gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Abrir Livro de Recibos" onClick={() => onOpen(doc)}>
+                    <BookOpen className="h-3.5 w-3.5 text-slate-500" />
+                  </Button>
+                  <AnimatedDownloadButton
+                    className="h-7 w-7"
+                    title={doc.status === "paid" ? "Baixar PDF" : "Pagar e baixar"}
+                    onDownload={() => onDownload(doc)}
+                  >
+                    <Download className="h-3.5 w-3.5 text-slate-500" />
+                  </AnimatedDownloadButton>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir" onClick={() => onDelete(doc._id)}>
+                    <Trash2 className="h-3.5 w-3.5 text-red-500/80" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
