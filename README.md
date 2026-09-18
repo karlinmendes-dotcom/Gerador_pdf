@@ -32,16 +32,18 @@ npx eslint src api # lint
 ## Arquitetura
 
 ```
-Usuário → DocumentForm (schema JSON) → paywall Pix (Mercado Pago)
-       → pdf-engine (@pdfme, A4) → Convex (documents/receipts/qrGalleries)
-       → Dashboard (histórico, Livro de Recibos, Histórico de Pix)
+Usuário → DocumentForm (schema JSON, 12 documentos) → paywall Pix (Mercado Pago)
+       → pdf-engine (@pdfme, A4, campos em branco viram linhas p/ caneta)
+       → Convex (documents/receipts/qrGalleries/payments)
+       → Dashboard /app (sidebar azul, KPIs, colunas de status, Livro de Recibos)
 
 Ferramentas extras:
 - QrCodeGenerator (/src/components/QrCodeGenerator.tsx)
-  · Texto/Link → QR instantâneo com cores customizadas (PNG/SVG)
+  · Texto/Link, Pix (BR Code EMV), WhatsApp (wa.me) → QR com cores, logo central,
+    molduras, CTA e PNG/SVG alta resolução
   · Galeria → arquivos no Convex Storage + QR para /g/:key (página GalleryPage)
 - Currículo Profissional (schemas/curriculo-profissional.json → pdfme)
-- NotFoundPage interativa (404 reativa ao cursor)
+- NotFoundPage interativa (404 reativa ao cursor + Lottie lazy)
 - ProfileMenu (avatar, Meus Documentos, Histórico de Pix, QR, Logout)
 ```
 
@@ -49,11 +51,17 @@ Ferramentas extras:
 
 | Rota | Descrição |
 |---|---|
-| `/` | Landing (vitrine de documentos + ferramentas) |
-| `/app` | Dashboard autenticado (modal de login automática sem sessão) |
+| `/` | Landing (âncoras `#docs`, `#tools`, `#how` · grid com os 12 documentos · todos os CTAs operacionais) |
+| `/app` | **Dashboard SaaS**: sidebar fixa azul `#0066FF` (Painel · Novo Documento · Meus Documentos · Livro de Recibos · Histórico Pix · QR Codes · Configurações), header com busca + perfil, KPIs e colunas de status. Sem login entra em **Modo Visitante** (localStorage) — nunca trava em loop ou tela branca |
 | `/g/:key` | Galeria pública hospedada (Gerador de QR Code) |
 | `/termos-de-servico` · `/politica-de-privacidade` | Páginas legais |
 | `*` | 404 interativa |
+
+### Ligação de botões (link check)
+
+- **Header**: logo → `/` · "Acessar Plataforma" → `/app` · "Entrar" → AuthModal · âncoras de scroll com `scroll-mt-20` (Documentos/Ferramentas/Como funciona) · perfil → dropdown com atalhos funcionais
+- **Landing**: hero "Gerar Documentos Grátis" e "Começar Grátis" → formulário do documento · cards de documentos e ferramentas → formulário correspondente ou QR · CTA de recebíveis → `/app`
+- **Dashboard**: sidebar e bottom-nav alternam views via estado (sem reload) · downloads respeitam paywall (rascunho → checkout Pix; pago → PDF) · exclusão com animação Crumple & Toss + mutation no Convex · todos os modais com skeleton/spinner durante o processamento
 
 ### API serverless (Vercel)
 

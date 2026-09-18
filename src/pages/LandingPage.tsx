@@ -275,7 +275,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Features ───────────────────────────────────────────── */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
+      <section id="tools" className="container mx-auto scroll-mt-20 px-4 py-16 md:py-24">
         <motion.h2 {...fadeUp} className="mb-12 text-center text-3xl font-bold text-slate-900 md:text-4xl">
           Tudo que você precisa, <span className="text-gradient">nada a mais</span>
         </motion.h2>
@@ -306,7 +306,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Como funciona ──────────────────────────────────────── */}
-      <section className="relative bg-white py-16 md:py-24">
+      <section id="how" className="relative scroll-mt-20 bg-white py-16 md:py-24">
         <div className="container mx-auto px-4">
           <motion.h2 {...fadeUp} className="mb-6 text-center text-3xl font-bold text-slate-900 md:text-4xl">
             Como funciona
@@ -426,7 +426,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Documentos ─────────────────────────────────────────── */}
-      <section className="bg-white py-16 md:py-24">
+      <section id="docs" className="scroll-mt-20 bg-white py-16 md:py-24">
         <div className="container mx-auto px-4">
           <motion.h2 {...fadeUp} className="mb-4 text-center text-3xl font-bold text-slate-900 md:text-4xl">
             Documentos disponíveis
