@@ -298,7 +298,8 @@ export default function DashboardPage() {
 
     setTimeout(async () => {
       try {
-        await downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
+        const signed = getDocument(doc._id);
+        await downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`, signed?.signatureDataUrl);
         track("pdf_generated", { type: doc.documentType });
         showToast("Pagamento aprovado · PDF baixado");
       } catch {
@@ -335,7 +336,7 @@ export default function DashboardPage() {
       return;
     }
     // Nunca falha em silêncio: erro de geração sempre visa o usuário.
-    downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`).catch((err) => {
+    downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`, doc.signatureDataUrl).catch((err) => {
       captureError(err, { where: "dashboard_download", type: doc.documentType });
       showToast("Falha ao gerar o PDF. Tente novamente em instantes.");
     });

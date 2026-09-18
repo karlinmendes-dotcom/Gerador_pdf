@@ -259,6 +259,11 @@ export function SignatureModal({ open, onOpenChange, documentId, documentTitle, 
         </div>
 
         <p className="text-[11px] leading-relaxed text-slate-500">
+          {documentId && (
+            <span className="mb-1 block font-medium text-emerald-700">
+              ✓ Ao baixar o PDF deste documento, a assinatura será desenhada automaticamente sobre a linha de assinatura.
+            </span>
+          )}
           Assinatura eletrônica simples (nível SES-1): identifica o signatário e data o ato. Para presunção de
           veracidade federal, valide o PDF final gratuitamente em{" "}
           <a href="https://assinador.iti.br" target="_blank" rel="noreferrer" className="text-blue-700 underline">

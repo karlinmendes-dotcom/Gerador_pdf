@@ -554,7 +554,12 @@ function signersFor(id: string, d: Record<string, string>): string[] {
   }
 }
 
-export async function generatePdf(documentType: string, data: Record<string, string>): Promise<Blob> {
+export async function generatePdf(
+  documentType: string,
+  data: Record<string, string>,
+  /** Assinatura eletrônica (PNG data URL transparente) desenhada sobre a linha de assinatura. */
+  signatureDataUrl?: string
+): Promise<Blob> {
   const schema = getSchema(documentType);
   const bodyBuilder = BODY_BUILDERS[documentType] ?? BODY_BUILDERS["compra-venda-veiculo"];
   const body = bodyBuilder(data);
@@ -569,17 +574,38 @@ export async function generatePdf(documentType: string, data: Record<string, str
       : undefined);
   const date = data.data_venda ?? data.data ?? data.data_assinatura ?? new Date().toLocaleDateString("pt-BR");
 
+  const schemas = page(schema.title, body, signers, local, date) as Array<Record<string, unknown>>;
+
+  // Assinatura eletrônica: posicionada sobre a linha do 1º signatário
+  // (footer_sign_lines em y=268, 170mm de largura; esquerda = 20..105).
+  if (signatureDataUrl) {
+    schemas.push({
+      type: "image",
+      name: "signature",
+      position: { x: 28, y: 258 },
+      width: 55,
+      height: 14,
+      content: signatureDataUrl,
+    });
+  }
+
   const template = {
     basePdf: { width: A4.width, height: A4.height, padding: A4.padding },
-    schemas: [page(schema.title, body, signers, local, date)],
+    schemas: [schemas],
   } as unknown as Template;
 
   const pdf = await generate({ template, inputs: [{}] });
   return new Blob([pdf], { type: "application/pdf" });
 }
 
-export async function downloadPdf(documentType: string, data: Record<string, string>, filename: string): Promise<void> {
-  const blob = await generatePdf(documentType, data);
+export async function downloadPdf(
+  documentType: string,
+  data: Record<string, string>,
+  filename: string,
+  /** Assinatura embutida (opcional). */
+  signatureDataUrl?: string
+): Promise<void> {
+  const blob = await generatePdf(documentType, data, signatureDataUrl);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
