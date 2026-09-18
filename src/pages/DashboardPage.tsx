@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, type TargetAndTransition, type Transition } from "framer-motion";
 import { useStore, type Document } from "@/lib/store";
@@ -17,7 +17,6 @@ import { ReceiptBook } from "@/components/ReceiptBook";
 import { GovBrGuide } from "@/components/GovBrGuide";
 import { QrCodeGenerator } from "@/components/QrCodeGenerator";
 import { LogoMark } from "@/components/Logo";
-import { ProfileMenu } from "@/components/ProfileMenu";
 import { DocIcon } from "@/components/DocIcon";
 import { TrashTarget } from "@/components/TrashTarget";
 import { StorageBar } from "@/components/StorageBar";
@@ -51,6 +50,10 @@ import {
   QrCode,
   Search,
   PenLine,
+  PanelLeftClose,
+  PanelLeftOpen,
+  CircleUserRound,
+  CircleHelp,
 } from "lucide-react";
 
 type View = "dashboard" | "docs" | "new" | "receipts" | "pix" | "settings";
@@ -88,6 +91,105 @@ const TOSS_TRANSITION: Transition = {
   ease: ["easeOut", "easeIn"],
 };
 
+/**
+ * Menu de conta do header do sistema — UM único avatar (corrige a duplicação
+ * "AN AN"). Dropdown: Minha Conta · Suporte · Sair.
+ */
+function AccountMenu({
+  name,
+  email,
+  onSignOut,
+  onOpenAccount,
+}: {
+  name: string;
+  email: string;
+  onSignOut: () => void;
+  onOpenAccount: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const nav = useNavigate();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const initials = name.slice(0, 2).toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white shadow-sm ring-1 ring-blue-200 transition-shadow hover:ring-blue-400"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Menu da conta"
+      >
+        {initials}
+      </motion.button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.18 }}
+            className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+            role="menu"
+          >
+            <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+              <p className="truncate text-sm font-semibold">{name}</p>
+              <p className="truncate text-[11px] text-slate-400">{email}</p>
+            </div>
+            <div className="p-1.5 text-sm">
+              <button
+                type="button"
+                onClick={() => { setOpen(false); onOpenAccount(); }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                role="menuitem"
+              >
+                <CircleUserRound className="h-4 w-4 text-blue-600" /> Minha Conta
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); nav("/"); }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                role="menuitem"
+              >
+                <CircleHelp className="h-4 w-4 text-blue-600" /> Suporte
+              </button>
+            </div>
+            <div className="border-t border-slate-100 p-1.5">
+              <button
+                type="button"
+                onClick={() => { setOpen(false); onSignOut(); }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                role="menuitem"
+              >
+                <LogOut className="h-4 w-4" /> Sair
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /** Badge de status no padrão Projuris (pastéis com borda fina). */
 function StatusBadge({ status }: { status: "draft" | "paid" }) {
   if (status === "paid") {
@@ -106,7 +208,20 @@ export default function DashboardPage() {
   const updateDocument = useStore((s) => s.updateDocument);
   const removeDocument = useStore((s) => s.removeDocument);
   const addReceipts = useStore((s) => s.addReceipts);
-  const userDocs = useStore((s) => s.getUserDocuments());
+  const documents = useStore((s) => s.documents);
+  const activeUserId = useStore((s) => s.userId);
+  // Zustand v5: o seletor precisa retornar referência estável — derivamos os
+  // documentos do usuário via useMemo a partir do estado `documents`.
+  // (Chamar getUserDocuments() direto no seletor cria um array novo a cada
+  // snapshot, quebra o useSyncExternalStore e derruba a rota /app em tela
+  // branca por loop infinito de re-render.)
+  const userDocs = useMemo(
+    () =>
+      documents
+        .filter((d) => d.userId === activeUserId)
+        .sort((a, b) => b.createdAt - a.createdAt),
+    [documents, activeUserId]
+  );
   const getDocument = useStore((s) => s.getDocument);
 
   const user = useAuth((s) => s.user);
@@ -125,6 +240,7 @@ export default function DashboardPage() {
   const [qrOpen, setQrOpen] = useState(false);
   const [pendingForm, setPendingForm] = useState<{ type: string; data: Record<string, string> } | null>(null);
   const [toast, setToast] = useState("");
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const [tossing, setTossing] = useState<string | null>(null);
   const [trashWiggle, setTrashWiggle] = useState(false);
   const trashRef = useRef<HTMLDivElement>(null);
@@ -358,74 +474,119 @@ export default function DashboardPage() {
   ] as const;
 
   const sidebar = (
-    <aside className="flex h-full w-64 flex-col bg-[#0066FF] text-blue-50">
-      <div className="border-b border-white/10 px-5 py-4">
-        <button type="button" onClick={() => nav("/")} aria-label="Início" className="flex items-center gap-2.5">
+    <aside
+      className={cn(
+        "flex h-full flex-col bg-[#0066FF] text-blue-50 transition-[width] duration-300 ease-out",
+        navCollapsed ? "w-[72px]" : "w-64"
+      )}
+    >
+      {/* Marca + botão retrair/expandir (padrão Google Ads) */}
+      <div className="flex h-[65px] items-center justify-between border-b border-white/10 px-3 pr-2">
+        <button type="button" onClick={() => nav("/")} aria-label="Início" className="flex min-w-0 items-center gap-2.5">
           <LogoMark size={34} />
-          <span className="text-left leading-tight">
-            <span className="block text-sm font-bold tracking-tight text-white">PDFForge</span>
-            <span className="block text-[10px] text-blue-200/70">Painel de Gestão</span>
-          </span>
+          {!navCollapsed && (
+            <span className="text-left leading-tight">
+              <span className="block text-sm font-bold tracking-tight text-white">PDFForge</span>
+              <span className="block text-[10px] text-blue-200/70">Painel de Gestão</span>
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setNavCollapsed((v) => !v)}
+          aria-label={navCollapsed ? "Expandir menu" : "Recolher menu"}
+          title={navCollapsed ? "Expandir menu" : "Recolher menu"}
+          className={cn(
+            "rounded-lg p-1.5 text-blue-100/70 transition-colors hover:bg-white/10 hover:text-white",
+            navCollapsed && "mx-auto"
+          )}
+        >
+          {navCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
         </button>
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => {
-              if ("action" in item && item.action === "qr") {
-                setQrOpen(true);
-                return;
-              }
-              setView(item.id as View);
-            }}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-              view === item.id
-                ? "bg-white text-blue-700 shadow-md shadow-blue-950/30"
-                : "text-blue-100/85 hover:bg-white/10 hover:text-white"
-            )}
-          >
-            <item.icon className={cn("h-4 w-4", view === item.id ? "text-blue-600" : "text-blue-100/70")} />
-            {item.label}
-            {view === item.id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-600" />}
-          </button>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const active = view === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if ("action" in item && item.action === "qr") {
+                  setQrOpen(true);
+                  return;
+                }
+                setView(item.id as View);
+              }}
+              title={item.label}
+              className={cn(
+                "flex min-h-11 w-full items-center gap-3 rounded-lg text-sm font-medium transition-all",
+                navCollapsed ? "justify-center px-0" : "px-3",
+                active
+                  ? "bg-white text-blue-700 shadow-md shadow-blue-950/30"
+                  : "text-blue-100/85 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <item.icon className={cn("h-5 w-5 shrink-0", active ? "text-blue-600" : "text-blue-100/70")} />
+              {!navCollapsed && <span className="truncate">{item.label}</span>}
+              {!navCollapsed && active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-600" />}
+            </button>
+          );
+        })}
       </nav>
 
-      <div className="space-y-2 border-t border-white/10 p-4">
+      <div className="space-y-2 border-t border-white/10 p-3">
         {user ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
-                {user.name.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="min-w-0 leading-tight">
-                <p className="truncate text-xs font-medium text-white">{user.name}</p>
-                <p className="truncate text-[10px] text-blue-200/60">{user.email}</p>
-              </div>
-            </div>
-            <button
-              onClick={signOut}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-blue-100/60 transition-colors hover:bg-white/5 hover:text-red-300"
+            <div
+              className={cn(
+                "rounded-lg bg-white/5 px-2 py-2",
+                navCollapsed && "flex justify-center px-0"
+              )}
+              title={navCollapsed ? user.name : undefined}
             >
-              <LogOut className="h-3.5 w-3.5" /> Sair da conta
-            </button>
+              {navCollapsed ? (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
+                  {user.name.slice(0, 2).toUpperCase()}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
+                    {user.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 leading-tight">
+                    <p className="truncate text-xs font-medium text-white">{user.name}</p>
+                    <p className="truncate text-[10px] text-blue-200/60">{user.email}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            {!navCollapsed && (
+              <button
+                onClick={signOut}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-blue-100/60 transition-colors hover:bg-white/5 hover:text-red-300"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Sair da conta
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
-            <p className="px-1 text-[10px] leading-relaxed text-blue-200/60">
-              Entre para salvar seus documentos na nuvem e emitir PDFs oficiais.
-            </p>
+            {!navCollapsed && (
+              <p className="px-1 text-[10px] leading-relaxed text-blue-200/60">
+                Entre para salvar seus documentos na nuvem e emitir PDFs oficiais.
+              </p>
+            )}
             <Button size="sm" className="w-full" onClick={() => { setAuthReason(undefined); setAuthOpen(true); }}>
-              <LogIn className="mr-1.5 h-3.5 w-3.5" /> Entrar / Cadastrar
+              {navCollapsed ? <LogIn className="h-3.5 w-3.5" /> : <><LogIn className="mr-1.5 h-3.5 w-3.5" /> Entrar / Cadastrar</>}
             </Button>
           </div>
         )}
-        <button onClick={() => nav("/")} className="text-xs text-blue-200/60 transition-colors hover:text-white">
-          ← Voltar ao site
-        </button>
+        {!navCollapsed && (
+          <button onClick={() => nav("/")} className="text-xs text-blue-200/60 transition-colors hover:text-white">
+            ← Voltar ao site
+          </button>
+        )}
       </div>
     </aside>
   );
@@ -439,13 +600,29 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Sidebar desktop */}
-      <div className="fixed inset-y-0 left-0 z-40 hidden md:block">{sidebar}</div>
+      {/* Sidebar desktop — largura acompanha o estado recolhido/expandido */}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden transition-[width] duration-300 ease-out md:block",
+          navCollapsed ? "w-[72px]" : "w-64"
+        )}
+      >
+        {sidebar}
+      </div>
 
-      <div className="md:pl-64">
+      <div className={cn("transition-[padding] duration-300 ease-out", navCollapsed ? "md:pl-[72px]" : "md:pl-64")}>
         {/* Header do sistema: logo reduzido · busca central · usuário autenticado */}
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-          <div className="flex h-16 items-center gap-3 px-4 md:px-8">
+          <div className="flex h-16 items-center gap-3 px-4 md:px-6">
+            {/* Toggle da sidebar (desktop) — sempre visível, padrão Google Ads */}
+            <button
+              type="button"
+              onClick={() => setNavCollapsed((v) => !v)}
+              aria-label={navCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+              className="hidden rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:block"
+            >
+              {navCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            </button>
             <button type="button" onClick={() => nav("/")} aria-label="Início" className="flex items-center gap-2 md:hidden">
               <LogoMark size={30} />
               <span className="text-sm font-bold text-slate-900">PDFForge</span>
@@ -475,7 +652,12 @@ export default function DashboardPage() {
             {/* Área do usuário */}
             <div className="ml-auto flex items-center gap-2">
               {user ? (
-                <ProfileMenu onNavigate={(v) => setView(v === "documents" ? "docs" : "pix")} />
+                <AccountMenu
+                  name={user.name}
+                  email={user.email}
+                  onSignOut={signOut}
+                  onOpenAccount={() => setView("settings")}
+                />
               ) : (
                 <>
                   <Badge variant="secondary" className="text-[10px] sm:hidden">Visitante</Badge>
