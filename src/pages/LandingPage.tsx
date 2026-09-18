@@ -17,6 +17,7 @@ import {
   FileSignature,
   Wallet,
   CheckCircle2,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,6 +124,78 @@ const fadeUp = {
   viewport: { once: true, margin: "-80px" },
   transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
 };
+
+// ─── FAQ (Perguntas Frequentes) ───────────────────────────────────────
+
+interface FaqEntry {
+  q: string;
+  a: string;
+}
+
+const FAQ_ITEMS: FaqEntry[] = [
+  {
+    q: "Os documentos têm validade jurídica?",
+    a: "Sim. Os documentos gerados são contratos e declarações particulares, válidos entre as partes nos termos do Código Civil brasileiro. Para presunção de veracidade federal, você pode assinar o PDF gratuitamente pelo Portal Gov.br (assinador.iti.br) — a plataforma orienta o passo a passo após o download.",
+  },
+  {
+    q: "Como funciona o preenchimento sem cadastro?",
+    a: "Você navega, escolhe um modelo e preenche o formulário 100% grátis, sem criar conta. Os dados ficam no seu navegador (modo visitante). O cadastro gratuito só é pedido no momento final — para salvar na nuvem e emitir o PDF oficial — e a cobrança (R$ 5 a R$ 9,90 via Pix) ocorre apenas no download.",
+  },
+  {
+    q: "Como faço para assinar o documento?",
+    a: "Três caminhos: (1) no Dashboard, use o botão de assinatura do documento pago — desenhe no canvas ou digite seu nome e baixe o PNG transparente para anexar; (2) assine digitalmente no assinador.iti.br com sua conta Gov.br (recomendado, validade federal); (3) imprima e assine à caneta — campos deixados em branco viram linhas para preenchimento manual.",
+  },
+  {
+    q: "Posso gerar um documento incompleto e completar depois?",
+    a: "Sim. Nenhum campo é obrigatório: o que ficar em branco é impresso como linha (____________) para preenchimento à caneta. Você também pode salvar o rascunho gratuitamente e retomar o preenchimento quando quiser, pelo Dashboard.",
+  },
+  {
+    q: "O pagamento é seguro? Como recebo meu PDF?",
+    a: "A cobrança é via Pix processada pelo Mercado Pago, com QR Code e “Pix Copia e Cola”. Assim que o pagamento é aprovado (baixa automática), o PDF é gerado no seu navegador e o download inicia na hora — e o documento fica salvo no Dashboard para baixar novamente a qualquer momento, sem custo extra.",
+  },
+];
+
+/** Item da sanfona FAQ — abre/fecha com animação suave (um aberto por vez). */
+function FaqItem({ item, defaultOpen }: { item: FaqEntry; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <motion.div {...fadeUp}>
+      <div
+        className={`overflow-hidden rounded-xl border bg-white transition-colors ${
+          open ? "border-blue-300 shadow-sm" : "border-slate-200"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+        >
+          <span className="text-sm font-semibold text-slate-900 md:text-base">{item.q}</span>
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="shrink-0"
+          >
+            <ChevronDown className={`h-4 w-4 ${open ? "text-blue-600" : "text-slate-400"}`} />
+          </motion.span>
+        </button>
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600">{item.a}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function LandingPage() {
   const nav = useNavigate();
@@ -458,6 +531,23 @@ export default function LandingPage() {
                   </CardContent>
                 </Card>
               </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ───────────────────────────────────────────────── */}
+      <section id="faq" className="scroll-mt-20 bg-white py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <motion.h2 {...fadeUp} className="mb-3 text-center text-3xl font-bold text-slate-900 md:text-4xl">
+            Perguntas frequentes
+          </motion.h2>
+          <motion.p {...fadeUp} className="mb-10 text-center text-slate-600">
+            Tudo o que você precisa saber antes de gerar seu primeiro documento.
+          </motion.p>
+          <div className="mx-auto max-w-2xl space-y-3">
+            {FAQ_ITEMS.map((f, i) => (
+              <FaqItem key={i} item={f} defaultOpen={i === 0} />
             ))}
           </div>
         </div>

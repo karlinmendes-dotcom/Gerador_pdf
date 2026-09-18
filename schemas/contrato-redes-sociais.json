@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "contrato-redes-sociais",
+  "title": "Contrato de Gestão de Redes Sociais / Tráfego",
+  "description": "Contrato de prestação de serviços digitais: social media, gestão de tráfego pago, conteúdo e métricas de desempenho.",
+  "type": "object",
+  "properties": {
+    "agencia_nome": { "type": "string", "title": "Nome do Prestador / Agência" },
+    "agencia_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Prestador", "placeholder": "00.000.000/0001-00" },
+    "cliente_nome": { "type": "string", "title": "Nome do Cliente / Empresa" },
+    "cliente_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Cliente", "placeholder": "00.000.000/0001-00" },
+    "redes_atendidas": { "type": "string", "title": "Redes Sociais Atendidas", "placeholder": "Ex.: Instagram, Facebook e TikTok" },
+    "escopo_servicos": { "type": "string", "title": "Escopo dos Serviços", "placeholder": "Ex.: 12 posts/mês, gestão de anúncios (Meta Ads), relatório mensal" },
+    "verba_midia": { "type": "string", "title": "Verba de Mídia (R$/mês)", "placeholder": "1.500,00 — paga direto à plataforma pelo cliente" },
+    "honorarios_mensais": { "type": "string", "title": "Honorários Mensais (R$)", "placeholder": "2.000,00" },
+    "dia_vencimento": { "type": "string", "title": "Dia de Vencimento", "placeholder": "Todo dia 5" },
+    "prazo_contrato": { "type": "string", "title": "Prazo do Contrato", "placeholder": "Ex.: 6 meses, renovável" },
+    "meta_kpi": { "type": "string", "title": "Metas / KPIs (opcional)", "placeholder": "Ex.: alcance médio +20% em 90 dias" },
+    "data_assinatura": { "type": "string", "title": "Data de Assinatura", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

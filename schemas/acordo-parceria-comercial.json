@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "acordo-parceria-comercial",
+  "title": "Acordo de Parceria Comercial / Sociedade Simples",
+  "description": "Acordo entre parceiros para exploração de atividade econômica comum: contribuições, divisão de lucros e responsabilidades (Arts. 986 a 990 do Código Civil).",
+  "type": "object",
+  "properties": {
+    "parceiro1_nome": { "type": "string", "title": "Nome do 1º Parceiro(a)" },
+    "parceiro1_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do 1º Parceiro(a)", "placeholder": "000.000.000-00" },
+    "parceiro2_nome": { "type": "string", "title": "Nome do 2º Parceiro(a)" },
+    "parceiro2_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do 2º Parceiro(a)", "placeholder": "000.000.000-00" },
+    "objeto_parceria": { "type": "string", "title": "Objeto da Parceria", "placeholder": "Ex.: exploração de loja online de roupas" },
+    "contribuicao_parceiro1": { "type": "string", "title": "Contribuição do 1º Parceiro", "placeholder": "Ex.: capital R$ 10.000,00" },
+    "contribuicao_parceiro2": { "type": "string", "title": "Contribuição do 2º Parceiro", "placeholder": "Ex.: operação e gestão comercial" },
+    "divisao_lucros": { "type": "string", "title": "Divisão de Lucros", "placeholder": "Ex.: 50% / 50%" },
+    "divisao_prejuizos": { "type": "string", "title": "Divisão de Prejuízos", "placeholder": "Ex.: proporcional às contribuições" },
+    "administracao": { "type": "string", "title": "Administração do Negócio", "placeholder": "Ex.: conjunta, com decisões acima de R$ 2.000 assinadas por ambos" },
+    "prazo_duracao": { "type": "string", "title": "Prazo de Duração", "placeholder": "Ex.: prazo indeterminado" },
+    "foro_cidade": { "type": "string", "title": "Foro de Eleição (Cidade/UF)", "placeholder": "Belo Horizonte/MG" },
+    "data_assinatura": { "type": "string", "title": "Data de Assinatura", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

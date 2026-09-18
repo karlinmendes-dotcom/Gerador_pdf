@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentForm } from "@/components/DocumentForm";
 import { AiTextInput } from "@/components/AiTextInput";
 import { CheckoutModal } from "@/components/CheckoutModal";
+import { SignatureModal } from "@/components/SignatureModal";
 import { AuthModal } from "@/components/AuthModal";
 import { ReceiptBook } from "@/components/ReceiptBook";
 import { GovBrGuide } from "@/components/GovBrGuide";
@@ -22,7 +23,7 @@ import { TrashTarget } from "@/components/TrashTarget";
 import { StorageBar } from "@/components/StorageBar";
 import { AnimatedDownloadButton } from "@/components/AnimatedDownloadButton";
 import { DocumentCardSkeleton, StatsSkeleton } from "@/components/Skeleton";
-import { track } from "@/lib/telemetry";
+import { track, captureError } from "@/lib/telemetry";
 import { CONVEX_URL } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import {
@@ -49,6 +50,7 @@ import {
   FileStack,
   QrCode,
   Search,
+  PenLine,
 } from "lucide-react";
 
 type View = "dashboard" | "docs" | "new" | "receipts" | "pix" | "settings";
@@ -101,9 +103,11 @@ function StatusBadge({ status }: { status: "draft" | "paid" }) {
 export default function DashboardPage() {
   const nav = useNavigate();
   const addDocument = useStore((s) => s.addDocument);
+  const updateDocument = useStore((s) => s.updateDocument);
   const removeDocument = useStore((s) => s.removeDocument);
   const addReceipts = useStore((s) => s.addReceipts);
   const userDocs = useStore((s) => s.getUserDocuments());
+  const getDocument = useStore((s) => s.getDocument);
 
   const user = useAuth((s) => s.user);
   const signOut = useAuth((s) => s.signOut);
@@ -113,6 +117,7 @@ export default function DashboardPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [loading] = useState(false);
   const [payDoc, setPayDoc] = useState<string | null>(null);
+  const [signDoc, setSignDoc] = useState<{ id: string; title: string } | null>(null);
   const [receiptsDoc, setReceiptsDoc] = useState<Document | null>(null);
 
   const [authOpen, setAuthOpen] = useState(false);
@@ -274,9 +279,22 @@ export default function DashboardPage() {
   const handlePaymentConfirmed = async (paymentId: string) => {
     if (!pendingForm) return;
     const { type, data } = pendingForm;
-    const doc = persistDocument(type, data, "paid", paymentId);
+
+    // Rascunho existente pago pelo histórico/kanban → promove o MESMO documento
+    // (sem duplicar); novo documento pago pelo formulário → persiste agora.
+    const payingDraft = payDoc && payDoc !== "__form__";
+    const doc: Document = payingDraft
+      ? (() => {
+          updateDocument(payDoc, { status: "paid", paymentId });
+          const updated = getDocument(payDoc);
+          if (updated) return updated;
+          return persistDocument(type, data, "paid", paymentId);
+        })()
+      : persistDocument(type, data, "paid", paymentId);
+
     setPendingForm(null);
-    track("pix_paid", { type });
+    setPayDoc(null);
+    track("pix_paid", { type, fromDraft: payingDraft ? "yes" : "no" });
 
     setTimeout(async () => {
       try {
@@ -316,7 +334,11 @@ export default function DashboardPage() {
       }
       return;
     }
-    downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`);
+    // Nunca falha em silêncio: erro de geração sempre visa o usuário.
+    downloadPdf(doc.documentType, JSON.parse(doc.dataJson), `${doc.title}.pdf`).catch((err) => {
+      captureError(err, { where: "dashboard_download", type: doc.documentType });
+      showToast("Falha ao gerar o PDF. Tente novamente em instantes.");
+    });
   };
 
   const showToast = (msg: string) => {
@@ -817,6 +839,17 @@ export default function DashboardPage() {
                               </div>
                               <div className="flex shrink-0 items-center gap-1">
                                 <StatusBadge status={doc.status} />
+                                {doc.status === "paid" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title={doc.signatureDataUrl ? "Reassinar documento" : "Solicitar Assinatura"}
+                                    onClick={() => setSignDoc({ id: doc._id, title: doc.title })}
+                                  >
+                                    <PenLine className={doc.signatureDataUrl ? "h-4 w-4 text-emerald-600" : "h-4 w-4 text-slate-500"} />
+                                  </Button>
+                                )}
                                 <AnimatedDownloadButton
                                   className="h-8 w-8"
                                   title={doc.status === "paid" ? "Baixar PDF" : "Pagar e baixar"}
@@ -968,7 +1001,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom nav (mobile) */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="grid grid-cols-4">
           {[
             { id: "dashboard", label: "Painel", icon: LayoutDashboard },
@@ -979,7 +1012,8 @@ export default function DashboardPage() {
             <button
               key={item.id}
               onClick={() => setView(item.id as View)}
-              className={`flex flex-col items-center gap-1 py-3 text-[10px] transition-colors ${
+              aria-current={view === item.id ? "page" : undefined}
+              className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] transition-colors active:scale-95 ${
                 view === item.id ? "font-semibold text-blue-600" : "text-slate-500"
               }`}
             >
@@ -1054,6 +1088,15 @@ export default function DashboardPage() {
           onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
+
+      {/* Assinatura eletrônica (canvas/digitada) */}
+      <SignatureModal
+        open={!!signDoc}
+        onOpenChange={(o) => { if (!o) setSignDoc(null); }}
+        documentId={signDoc?.id ?? null}
+        documentTitle={signDoc?.title}
+        onSaved={showToast}
+      />
 
       {/* Alvo da animação Crumple & Toss */}
       <TrashTarget ref={trashRef} wiggle={trashWiggle} />

@@ -51,7 +51,7 @@ Ferramentas extras:
 
 | Rota | Descrição |
 |---|---|
-| `/` | Landing (âncoras `#docs`, `#tools`, `#how` · grid com os 12 documentos · todos os CTAs operacionais) |
+| `/` | Landing (âncoras `#docs`, `#tools`, `#how`, `#faq` · 16 documentos · FAQ accordion · todos os CTAs operacionais) |
 | `/app` | **Dashboard SaaS**: sidebar fixa azul `#0066FF` (Painel · Novo Documento · Meus Documentos · Livro de Recibos · Histórico Pix · QR Codes · Configurações), header com busca + perfil, KPIs e colunas de status. Sem login entra em **Modo Visitante** (localStorage) — nunca trava em loop ou tela branca |
 | `/g/:key` | Galeria pública hospedada (Gerador de QR Code) |
 | `/termos-de-servico` · `/politica-de-privacidade` | Páginas legais |
@@ -61,7 +61,8 @@ Ferramentas extras:
 
 - **Header**: logo → `/` · "Acessar Plataforma" → `/app` · "Entrar" → AuthModal · âncoras de scroll com `scroll-mt-20` (Documentos/Ferramentas/Como funciona) · perfil → dropdown com atalhos funcionais
 - **Landing**: hero "Gerar Documentos Grátis" e "Começar Grátis" → formulário do documento · cards de documentos e ferramentas → formulário correspondente ou QR · CTA de recebíveis → `/app`
-- **Dashboard**: sidebar e bottom-nav alternam views via estado (sem reload) · downloads respeitam paywall (rascunho → checkout Pix; pago → PDF) · exclusão com animação Crumple & Toss + mutation no Convex · todos os modais com skeleton/spinner durante o processamento
+- **Dashboard**: sidebar e bottom-nav alternam views via estado (sem reload) · downloads respeitam paywall (rascunho → checkout Pix; pago → PDF) · **pagar rascunho promove o mesmo documento (sem duplicar)** · **botão "Solicitar Assinatura"** em docs pagos (canvas de desenho ou nome digitado → PNG transparente) · exclusão com animação Crumple & Toss + mutation no Convex · todo erro de geração/download exibe toast (zero silent failures)
+- **Catálogo**: 16 modelos oficiais — veículos, aluguel, imóveis, serviços, empreitada, NDA, vistoria, recibos (simples e com encargos), rescisão com quitação, quitação de débitos, renda autônomo, residência, currículo, redes sociais/tráfego e parceria comercial
 
 ### API serverless (Vercel)
 

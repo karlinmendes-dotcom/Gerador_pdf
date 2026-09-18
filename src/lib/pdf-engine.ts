@@ -35,6 +35,10 @@ export const PRICES: Record<string, number> = {
   "termo-vistoria-imovel": 5.0,
   "declaracao-quitacao": 5.0,
   "declaracao-renda-autonomo": 5.0,
+  "contrato-redes-sociais": 7.9,
+  "acordo-parceria-comercial": 9.9,
+  "termo-rescisao-quitacao": 5.0,
+  "recibo-aluguel-encargos": 5.0,
 };
 
 export function getPrice(id: string): number {
@@ -406,6 +410,106 @@ O dever de sigilo permanece por ${fill(d.prazo_anos, "____ anos")} contados da a
 
 CLÁUSULA 6ª — DO FORO
 Fica eleito o foro da comarca de ${fill(d.foro_cidade, "________________")}, para dirimir controvérsias decorrentes deste acordo.`,
+
+  "contrato-redes-sociais": (d) => `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DIGITAIS — REDES SOCIAIS E TRÁFEGO
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, as partes celebram o presente Contrato de Prestação de Serviços Digitais, regido pelo Código Civil.
+
+CLÁUSULA 1ª — DAS PARTES
+PRESTADOR(A): ${fill(d.agencia_nome)}, CPF/CNPJ nº ${fill(d.agencia_cpf_cnpj)}.
+CLIENTE: ${fill(d.cliente_nome)}, CPF/CNPJ nº ${fill(d.cliente_cpf_cnpj)}.
+
+CLÁUSULA 2ª — DO OBJETO E DO ESCOPO
+O(A) PRESTADOR(A) prestará serviços de gestão de conteúdo e tráfego para as redes ${fill(d.redes_atendidas, "a definir")}, compreendendo: ${fill(d.escopo_servicos, LONG_BLANK)}
+
+CLÁUSULA 3ª — DA VERBA DE MÍDIA
+A verba de anúncios (mídia paga) é de R$ ${brl(fill(d.verba_midia, "a definir"))} mensais, paga diretamente pelo CLIENTE às plataformas, não compondo os honorários do prestador.
+
+CLÁUSULA 4ª — DOS HONORÁRIOS E DO VENCIMENTO
+pelos serviços descritos, o CLIENTE pagará honorários mensais de R$ ${brl(fill(d.honorarios_mensais))}, vencíveis em ${fill(d.dia_vencimento, "data a combinar")}, mediante nota/recibo.
+
+CLÁUSULA 5ª — DO PRAZO E DAS METAS
+O contrato vigorará por ${fill(d.prazo_contrato, "prazo a combinar")}. ${d.meta_kpi ? `Metas de desempenho pactuadas (informativas, salvo disposição em contrário): ${d.meta_kpi}.` : "As partes poderão pactuar metas de desempenho em aditivo."} Resultados de plataformas digitais dependem de fatores externos à gestão (algoritmos, verba, mercado).
+
+CLÁUSULA 6ª — DA PROPRIEDADE E DA CONFIDENCIALIDADE
+Perfis, senhas e verbas pertencem ao CLIENTE; os conteúdos criados e aprovados poderão ser reutilizados pelo cliente em suas canais. O prestador manterá sigilo sobre dados de acesso e métricas do negócio.`,
+
+  "acordo-parceria-comercial": (d) => `ACORDO DE PARCERIA COMERCIAL / SOCIEDADE SIMPLES
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, os parceiros celebram o presente Acordo, regido pelos Arts. 986 a 990 do Código Civil.
+
+CLÁUSULA 1ª — DOS PARCEIROS
+1º PARCEIRO(A): ${fill(d.parceiro1_nome)}, CPF/CNPJ nº ${fill(d.parceiro1_cpf_cnpj)}.
+2º PARCEIRO(A): ${fill(d.parceiro2_nome)}, CPF/CNPJ nº ${fill(d.parceiro2_cpf_cnpj)}.
+
+CLÁUSULA 2ª — DO OBJETO
+Os parceiros unem esforços e recursos para a exploração comum de: ${fill(d.objeto_parceria, LONG_BLANK)}
+
+CLÁUSULA 3ª — DAS CONTRIBUIÇÕES
+• 1º Parceiro: ${fill(d.contribuicao_parceiro1, "a registrar")}
+• 2º Parceiro: ${fill(d.contribuicao_parceiro2, "a registrar")}
+As contribuições podem ser em capital, bens ou trabalho, conforme arts. 986 e 1.056 do CC.
+
+CLÁUSULA 4ª — DOS LUCROS E DOS PREJUÍZOS
+Divisão de lucros: ${fill(d.divisao_lucros, "proporcional às contribuições")}. Divisão de prejuízos: ${fill(d.divisao_prejuizos, "proporcional às contribuições")}.
+
+CLÁUSULA 5ª — DA ADMINISTRAÇÃO
+A administração do negócio caberá: ${fill(d.administracao, "forma a ser definida pelos parceiros")}. Atos de disposição sobre bens comuns dependerão da aprovação de todos os parceiros (Art. 1.023, CC).
+
+CLÁUSULA 6ª — DO PRAZO, DO FORO E DA DISSOLUÇÃO
+Prazo: ${fill(d.prazo_duracao, "indeterminado")}. Na dissolução, apurar-se-á o acervo e ratear-se-ão resultados na proporção das contribuições. Foro de eleição: ${fill(d.foro_cidade, "comarca a eleger")}.`,
+
+  "termo-rescisao-quitacao": (d) => `TERMO DE RESCISÃO CONTRATUAL E QUITAÇÃO MÚTUA
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, as partes celebram o presente Termo de Rescisão, por mútuo e expresso acordo, observado o princípio da liberdade contratual (Art. 421 do CC).
+
+CLÁUSULA 1ª — DO CONTRATO RESCINDIDO
+Fica RESCINDIDO, em todos os seus termos, o contrato: ${fill(d.contrato_original, "contrato firmado entre as partes")}, celebrado entre ${fill(d.parte1_nome)} (CPF/CNPJ nº ${fill(d.parte1_cpf_cnpj)}) e ${fill(d.parte2_nome)} (CPF/CNPJ nº ${fill(d.parte2_cpf_cnpj)}).
+
+CLÁUSULA 2ª — DO MOTIVO E DOS EFEITOS
+A rescisão decorre de: ${fill(d.motivo_rescisao, "comum acordo entre as partes")}, produzindo efeitos a partir de ${fill(d.data_efetivacao, "data da assinatura")}.
+
+CLÁUSULA 3ª — DO ACERTO FINANCEIRO E DAS OBRIGAÇÕES
+• Acerto financeiro: ${fill(d.acerto_financeiro, "nada a acertar entre as partes")}
+• Obrigações pendentes: ${fill(d.obrigacoes_restantes, "nenhuma pendência restante")}
+• Multa rescisória: ${fill(d.multa_rescitoria, "isenta, por acordo")}
+
+CLÁUSULA 4ª — DA QUITAÇÃO MÚTUA
+Com o cumprimento do disposto acima, as partes outorgam-se RECIPROCAMENTE PLENA, GERAL E IRREVOGÁVEL QUITAÇÃO referente ao contrato rescindido, nada mais tendo a reclamar, a qualquer título, presente ou futuro.
+
+CLÁUSULA 5ª — DAS TESTEMUNHAS
+As partes elegem 2 (duas) testemunhas para firmar o presente instrumento, recomendando-se o registro em cartório para maior robustez probatória.`,
+
+  "recibo-aluguel-encargos": (d) => {
+    const num = (v?: string) => {
+      const n = Number(String(v ?? "").replace(/\\./g, "").replace(",", ".").replace(/[^0-9.-]/g, ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const aluguel = num(d.valor_aluguel);
+    const total = aluguel + num(d.valor_iptu) + num(d.valor_condominio) + num(d.valor_agua) + num(d.outros_encargos) - num(d.descontos);
+    const fmt = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const linha = (label: string, v?: string) => ({ label, v: num(v) });
+    const encargos = [
+      linha("Aluguel", d.valor_aluguel),
+      linha("IPTU", d.valor_iptu),
+      linha("Condomínio", d.valor_condominio),
+      linha("Água/Energia", d.valor_agua),
+      linha("Outros encargos", d.outros_encargos),
+    ].filter((e) => e.v > 0);
+
+    return `RECIBO DE ALUGUEL COM ENCARGOS
+
+Recebi de ${fill(d.locatario_nome)}, inscrito(a) no CPF/CNPJ sob nº ${fill(d.locatario_cpf_cnpj)}, a importância apurada abaixo, referente à locação do imóvel situado em ${fill(d.imovel_endereco, LONG_BLANK)}, competência ${fill(d.mes_referencia, "mês corrente")}.
+
+DEMONSTRATIVO${d.descontos && num(d.descontos) > 0 ? " (com descontos)" : ""}
+${encargos.length > 0 ? encargos.map((e) => `• ${e.label}: R$ ${fmt(e.v)}`).join("\n") : `• Aluguel: R$ ${fmt(aluguel)}`}${num(d.descontos) > 0 ? `\n• Descontos: - R$ ${fmt(num(d.descontos))}` : ""}
+
+TOTAL RECEBIDO: R$ ${fmt(total > 0 ? total : aluguel)}${d.forma_pagamento ? ` — via ${d.forma_pagamento}` : ""}, dando plena, geral e irrevogável quitação das importâncias relativas à competência acima.
+
+Local e data: ${fill(d.cidade)}, ${fill(d.data_pagamento)}.
+
+Declarações do recebedor: este recibo não substitui nota fiscal; encargos não discriminados acima não foram objeto deste pagamento.`;
+  },
 };
 
 // ─── Geração ──────────────────────────────────────────────────────────
@@ -437,6 +541,14 @@ function signersFor(id: string, d: Record<string, string>): string[] {
       return [`${d.credor_nome ?? "Credor(a)"} — Credor(a)`, `${d.devedor_nome ?? "Devedor(a)"} — Devedor(a)`];
     case "declaracao-renda-autonomo":
       return [`${d.prestador_nome ?? "Declarante"} — Declarante`];
+    case "contrato-redes-sociais":
+      return [`${d.agencia_nome ?? "Prestador(a)"} — Prestador(a)`, `${d.cliente_nome ?? "Cliente"} — Cliente`];
+    case "acordo-parceria-comercial":
+      return [`${d.parceiro1_nome ?? "1º Parceiro(a)"} — 1º Parceiro(a)`, `${d.parceiro2_nome ?? "2º Parceiro(a)"} — 2º Parceiro(a)`];
+    case "termo-rescisao-quitacao":
+      return [`${d.parte1_nome ?? "1ª Parte"} — 1ª Parte`, `${d.parte2_nome ?? "2ª Parte"} — 2ª Parte`];
+    case "recibo-aluguel-encargos":
+      return [`${d.locador_nome ?? "Locador(a)"} — Locador(a) Recebedor(a)`];
     default:
       return ["Assinatura do(a) declarante"];
   }

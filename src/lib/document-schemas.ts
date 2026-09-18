@@ -10,6 +10,10 @@ import confidencialidade from "../../schemas/acordo-confidencialidade.json";
 import vistoria from "../../schemas/termo-vistoria-imovel.json";
 import quitacao from "../../schemas/declaracao-quitacao.json";
 import rendaAutonomo from "../../schemas/declaracao-renda-autonomo.json";
+import redesSociais from "../../schemas/contrato-redes-sociais.json";
+import parceriaComercial from "../../schemas/acordo-parceria-comercial.json";
+import rescisaoQuitacao from "../../schemas/termo-rescisao-quitacao.json";
+import reciboAluguel from "../../schemas/recibo-aluguel-encargos.json";
 
 // ─── Tipos ────────────────────────────────────────────────────────────
 
@@ -55,6 +59,10 @@ const META: Record<string, { icon: string; category: string }> = {
   "termo-vistoria-imovel": { icon: "🔍", category: "Imóveis" },
   "declaracao-quitacao": { icon: "✅", category: "Financeiro" },
   "declaracao-renda-autonomo": { icon: "📊", category: "Pessoal" },
+  "contrato-redes-sociais": { icon: "📱", category: "Marketing" },
+  "acordo-parceria-comercial": { icon: "🤝", category: "Empresarial" },
+  "termo-rescisao-quitacao": { icon: "📜", category: "Financeiro" },
+  "recibo-aluguel-encargos": { icon: "🧾", category: "Imóveis" },
 };
 
 /** Campos renderizados em largura total (endereços, descrições, textos longos). */
@@ -146,6 +154,10 @@ export const DOCUMENT_SCHEMAS: Record<string, DocumentSchema> = {
   "termo-vistoria-imovel": build("termo-vistoria-imovel", vistoria as RawSchema),
   "declaracao-quitacao": build("declaracao-quitacao", quitacao as RawSchema),
   "declaracao-renda-autonomo": build("declaracao-renda-autonomo", rendaAutonomo as RawSchema),
+  "contrato-redes-sociais": build("contrato-redes-sociais", redesSociais as RawSchema),
+  "acordo-parceria-comercial": build("acordo-parceria-comercial", parceriaComercial as RawSchema),
+  "termo-rescisao-quitacao": build("termo-rescisao-quitacao", rescisaoQuitacao as RawSchema),
+  "recibo-aluguel-encargos": build("recibo-aluguel-encargos", reciboAluguel as RawSchema),
 };
 
 export const DOC_IDS = Object.keys(DOCUMENT_SCHEMAS);

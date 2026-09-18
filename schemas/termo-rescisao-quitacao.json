@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "termo-rescisao-quitacao",
+  "title": "Termo de Rescisão Contratual e Quitação Mútua",
+  "description": "Distrato consensual que encerra o contrato original, define acertos financeiros e promove quitação recíproca entre as partes.",
+  "type": "object",
+  "properties": {
+    "contrato_original": { "type": "string", "title": "Contrato Original Rescindido", "placeholder": "Ex.: Contrato de Locação de 10/01/2026" },
+    "parte1_nome": { "type": "string", "title": "Nome da 1ª Parte" },
+    "parte1_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ da 1ª Parte", "placeholder": "000.000.000-00" },
+    "parte2_nome": { "type": "string", "title": "Nome da 2ª Parte" },
+    "parte2_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ da 2ª Parte", "placeholder": "000.000.000-00" },
+    "motivo_rescisao": { "type": "string", "title": "Motivo da Rescisão", "placeholder": "Ex.: comum acordo, sem culpa das partes" },
+    "data_efetivacao": { "type": "string", "title": "Data de Efeitos da Rescisão", "placeholder": "DD/MM/AAAA" },
+    "acerto_financeiro": { "type": "string", "title": "Acerto Financeiro", "placeholder": "Ex.: devolução de caução R$ 2.000,00 em 10 dias" },
+    "obrigacoes_restantes": { "type": "string", "title": "Obrigações Pendentes", "placeholder": "Ex.: entrega das chaves em 5 dias" },
+    "multa_rescitoria": { "type": "string", "title": "Multa Rescisória (se houver)", "placeholder": "Isenta por comum acordo" },
+    "cidade": { "type": "string", "title": "Cidade" },
+    "data_assinatura": { "type": "string", "title": "Data de Assinatura", "placeholder": "DD/MM/AAAA" }
+  }
+}

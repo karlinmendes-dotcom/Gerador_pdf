@@ -12,6 +12,10 @@ import {
   SearchCheck,
   BadgeCheck,
   TrendingUp,
+  Smartphone,
+  Handshake,
+  FileSignature,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +37,10 @@ const DOC_ICONS: Record<string, LucideIcon> = {
   "termo-vistoria-imovel": SearchCheck,
   "declaracao-quitacao": BadgeCheck,
   "declaracao-renda-autonomo": TrendingUp,
+  "contrato-redes-sociais": Smartphone,
+  "acordo-parceria-comercial": Handshake,
+  "termo-rescisao-quitacao": FileSignature,
+  "recibo-aluguel-encargos": ScrollText,
 };
 
 /** Resolve o ícone Lucide do tipo de documento (fallback: FileText). */

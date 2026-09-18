@@ -47,6 +47,7 @@ const LINKS = [
   { id: "docs", label: "Documentos" },
   { id: "tools", label: "Ferramentas" },
   { id: "how", label: "Como funciona" },
+  { id: "faq", label: "FAQ" },
 ];
 
 /** Header corporativo clean: barra branca fixa com borda fina e sombra leve. */

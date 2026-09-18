@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "recibo-aluguel-encargos",
+  "title": "Recibo de Aluguel com Encargos (IPTU/Condomínio)",
+  "description": "Recibo detalhado de aluguel com discriminação de encargos: IPTU, condomínio, taxas e descontos, com total do mês.",
+  "type": "object",
+  "properties": {
+    "locador_nome": { "type": "string", "title": "Nome do Locador(a) (recebe)" },
+    "locador_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Locador(a)", "placeholder": "000.000.000-00" },
+    "locatario_nome": { "type": "string", "title": "Nome do Locatário(a) (paga)" },
+    "locatario_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Locatário(a)", "placeholder": "000.000.000-00" },
+    "imovel_endereco": { "type": "string", "title": "Endereço do Imóvel" },
+    "mes_referencia": { "type": "string", "title": "Mês de Referência", "placeholder": "Ex.: Setembro/2026" },
+    "valor_aluguel": { "type": "string", "title": "Aluguel (R$)", "placeholder": "1.200,00" },
+    "valor_iptu": { "type": "string", "title": "IPTU (R$)", "placeholder": "85,40" },
+    "valor_condominio": { "type": "string", "title": "Condomínio (R$)", "placeholder": "320,00" },
+    "valor_agua": { "type": "string", "title": "Água/Energia (R$)", "placeholder": "120,00" },
+    "outros_encargos": { "type": "string", "title": "Outros Encargos (R$)", "placeholder": "Ex.: taxas delixos 50,00" },
+    "descontos": { "type": "string", "title": "Descontos (R$)", "placeholder": "Ex.: desconto pontualidade 30,00" },
+    "forma_pagamento": { "type": "string", "title": "Forma de Pagamento", "enum": ["PIX", "Transferência", "Dinheiro", "Boleto"] },
+    "data_pagamento": { "type": "string", "title": "Data do Pagamento", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

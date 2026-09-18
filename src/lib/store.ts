@@ -11,6 +11,8 @@ export interface Document {
   pdfUrl?: string;
   status: DocStatus;
   paymentId?: string;
+  /** Assinatura eletrônica simples (PNG data URL transparente) vinculada ao documento. */
+  signatureDataUrl?: string;
   createdAt: number;
   updatedAt: number;
 }
