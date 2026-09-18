@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Images, CheckCircle2, QrCode, ImagePlus, Trash2, Frame, Type } from "lucide-react";
+import { Images, CheckCircle2, QrCode, ImagePlus, Trash2, Frame, Type, Link2, Banknote, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,9 +119,25 @@ export function QrCodeGenerator({ open, onOpenChange }: QrCodeGeneratorProps) {
 
 // ─── Aba: Texto / Link ────────────────────────────────────────────────
 
+/** Tipos de conteúdo do QR (padrão mestre: Pix, Links, WhatsApp e Arquivos). */
+type QrContentType = "link" | "pix" | "whatsapp";
+
+const CONTENT_TYPES: { id: QrContentType; label: string }[] = [
+  { id: "link", label: "Texto / Link" },
+  { id: "pix", label: "Pix" },
+  { id: "whatsapp", label: "WhatsApp" },
+];
+
 function TextQrTab() {
   const engine = useQrEngine();
+  const [qrType, setQrType] = useState<QrContentType>("link");
   const [text, setText] = useState("");
+  const [pixKey, setPixKey] = useState("");
+  const [pixName, setPixName] = useState("");
+  const [pixCity, setPixCity] = useState("");
+  const [pixAmount, setPixAmount] = useState("");
+  const [waPhone, setWaPhone] = useState("");
+  const [waMessage, setWaMessage] = useState("");
   const [design, setDesign] = useState<QrDesign>({
     templateId: null,
     dark: "#0b0f17",
@@ -136,8 +152,28 @@ function TextQrTab() {
   const [logoBusy, setLogoBusy] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  const trimmed = text.trim();
-  const valid = trimmed.length > 0 && trimmed.length <= 1000;
+  // Payload PIX "Copia e Cola" (BR Code EMV) — escaneável em qualquer banco.
+  const pixPayload = useMemo(() => {
+    if (qrType !== "pix" || !engine || !pixKey.trim()) return "";
+    return engine.buildPixPayload({
+      key: pixKey.trim(),
+      name: pixName.trim() || "Recebedor",
+      city: pixCity.trim() || "BRASIL",
+      amount: pixAmount.trim() || undefined,
+    });
+  }, [qrType, engine, pixKey, pixName, pixCity, pixAmount]);
+
+  // Deep link wa.me — abre a conversa com mensagem pré-preenchida.
+  const waPayload = useMemo(() => {
+    if (qrType !== "whatsapp") return "";
+    const digits = waPhone.replace(/\D/g, "");
+    if (digits.length < 10) return "";
+    const msg = waMessage.trim();
+    return `https://wa.me/${digits}${msg ? `?text=${encodeURIComponent(msg)}` : ""}`;
+  }, [qrType, waPhone, waMessage]);
+
+  const payload = qrType === "pix" ? pixPayload : qrType === "whatsapp" ? waPayload : text.trim();
+  const valid = payload.length > 0 && payload.length <= 1000;
 
   useEffect(() => {
     if (!valid || !engine) {
@@ -148,7 +184,7 @@ function TextQrTab() {
     setBusy(true);
     let cancelled = false;
     engine
-      .makeStyledQrDataUrl(trimmed, {
+      .makeStyledQrDataUrl(payload, {
         dark: design.dark,
         light: design.light,
         dotStyle: design.dotStyle,
@@ -166,7 +202,7 @@ function TextQrTab() {
     return () => {
       cancelled = true;
     };
-  }, [trimmed, valid, design, engine]);
+  }, [payload, valid, design, engine]);
 
   const handleLogo = async (file: File | undefined) => {
     if (!file || !engine) return;
@@ -194,18 +230,130 @@ function TextQrTab() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="qr-text" className="text-slate-600">
-          Conteúdo do QR Code
-        </Label>
-        <Input
-          id="qr-text"
-          placeholder="https://exemplo.com ou qualquer texto"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="field-neon"
-        />
+      {/* Tipo de conteúdo */}
+      <div className="grid grid-cols-3 gap-2">
+        {CONTENT_TYPES.map((t) => {
+          const Icon = t.id === "pix" ? Banknote : t.id === "whatsapp" ? MessageCircle : Link2;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setQrType(t.id)}
+              className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition-all ${
+                qrType === t.id
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
+
+      {qrType === "link" && (
+        <div className="space-y-1.5">
+          <Label htmlFor="qr-text" className="text-slate-600">
+            Conteúdo do QR Code
+          </Label>
+          <Input
+            id="qr-text"
+            placeholder="https://exemplo.com ou qualquer texto"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="field-neon"
+          />
+        </div>
+      )}
+
+      {qrType === "pix" && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="qr-pix-key" className="text-slate-600">
+              Chave Pix (CPF, e-mail, telefone ou aleatória)
+            </Label>
+            <Input
+              id="qr-pix-key"
+              placeholder="Ex.: 000.000.000-00 ou chave@exemplo.com"
+              value={pixKey}
+              onChange={(e) => setPixKey(e.target.value)}
+              className="field-neon"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="qr-pix-name" className="text-slate-600">
+                Nome do recebedor
+              </Label>
+              <Input
+                id="qr-pix-name"
+                placeholder="Máx. 25 caracteres"
+                maxLength={25}
+                value={pixName}
+                onChange={(e) => setPixName(e.target.value)}
+                className="field-neon"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qr-pix-city" className="text-slate-600">
+                Cidade
+              </Label>
+              <Input
+                id="qr-pix-city"
+                placeholder="Máx. 15 caracteres"
+                maxLength={15}
+                value={pixCity}
+                onChange={(e) => setPixCity(e.target.value)}
+                className="field-neon"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qr-pix-amount" className="text-slate-600">
+              Valor (opcional)
+            </Label>
+            <Input
+              id="qr-pix-amount"
+              inputMode="decimal"
+              placeholder="Ex.: 25,00 — vazio = valor livre"
+              value={pixAmount}
+              onChange={(e) => setPixAmount(e.target.value)}
+              className="field-neon"
+            />
+          </div>
+        </div>
+      )}
+
+      {qrType === "whatsapp" && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="qr-wa-phone" className="text-slate-600">
+              Número com DDI + DDD
+            </Label>
+            <Input
+              id="qr-wa-phone"
+              inputMode="tel"
+              placeholder="Ex.: 5511999999999"
+              value={waPhone}
+              onChange={(e) => setWaPhone(e.target.value)}
+              className="field-neon"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qr-wa-msg" className="text-slate-600">
+              Mensagem pré-preenchida (opcional)
+            </Label>
+            <Input
+              id="qr-wa-msg"
+              placeholder="Ex.: Olá! Vi seu QR Code e quero atendimento."
+              value={waMessage}
+              onChange={(e) => setWaMessage(e.target.value)}
+              className="field-neon"
+            />
+          </div>
+        </div>
+      )}
 
       <TemplatePicker design={design} onApply={applyTemplate} />
 
@@ -313,14 +461,14 @@ function TextQrTab() {
         </div>
       </div>
 
-      <QrPreview png={png} busy={busy || !engine} emptyHint="Digite um texto ou link acima para gerar o QR." />
+      <QrPreview png={png} busy={busy || !engine} emptyHint="Preencha o conteúdo acima para gerar o QR." />
 
       <DownloadRow
         disabled={!png}
         onPng={() => png && engine?.downloadDataUrl(png, "pdfforge-qrcode.png")}
         onSvg={async () => {
           if (!valid || !engine) return;
-          const svg = await engine.makeQrSvg(trimmed, { dark: design.dark, light: design.light, ecc: "Q", margin: 2 });
+          const svg = await engine.makeQrSvg(payload, { dark: design.dark, light: design.light, ecc: "Q", margin: 2 });
           engine.downloadSvg(svg, "pdfforge-qrcode.svg");
         }}
       />

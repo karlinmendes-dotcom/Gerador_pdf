@@ -3,6 +3,13 @@ import recibo from "../../schemas/recibo-pagamento.json";
 import residencia from "../../schemas/declaracao-residencia.json";
 import aluguel from "../../schemas/contrato-aluguel-simples.json";
 import curriculo from "../../schemas/curriculo-profissional.json";
+import compraImovel from "../../schemas/contrato-compra-venda-imovel.json";
+import prestacaoServicos from "../../schemas/contrato-prestacao-servicos.json";
+import empreitada from "../../schemas/contrato-empreitada.json";
+import confidencialidade from "../../schemas/acordo-confidencialidade.json";
+import vistoria from "../../schemas/termo-vistoria-imovel.json";
+import quitacao from "../../schemas/declaracao-quitacao.json";
+import rendaAutonomo from "../../schemas/declaracao-renda-autonomo.json";
 
 // ─── Tipos ────────────────────────────────────────────────────────────
 
@@ -41,6 +48,13 @@ const META: Record<string, { icon: string; category: string }> = {
   "declaracao-residencia": { icon: "🏠", category: "Pessoal" },
   "contrato-aluguel-simples": { icon: "🔑", category: "Imóveis" },
   "curriculo-profissional": { icon: "💼", category: "Carreira" },
+  "contrato-compra-venda-imovel": { icon: "🏘️", category: "Imóveis" },
+  "contrato-prestacao-servicos": { icon: "🧰", category: "Trabalho" },
+  "contrato-empreitada": { icon: "🏗️", category: "Obras" },
+  "acordo-confidencialidade": { icon: "🤐", category: "Empresarial" },
+  "termo-vistoria-imovel": { icon: "🔍", category: "Imóveis" },
+  "declaracao-quitacao": { icon: "✅", category: "Financeiro" },
+  "declaracao-renda-autonomo": { icon: "📊", category: "Pessoal" },
 };
 
 /** Campos renderizados em largura total (endereços, descrições, textos longos). */
@@ -125,6 +139,13 @@ export const DOCUMENT_SCHEMAS: Record<string, DocumentSchema> = {
   "declaracao-residencia": build("declaracao-residencia", residencia as RawSchema),
   "contrato-aluguel-simples": build("contrato-aluguel-simples", aluguel as RawSchema),
   "curriculo-profissional": build("curriculo-profissional", curriculo as RawSchema),
+  "contrato-compra-venda-imovel": build("contrato-compra-venda-imovel", compraImovel as RawSchema),
+  "contrato-prestacao-servicos": build("contrato-prestacao-servicos", prestacaoServicos as RawSchema),
+  "contrato-empreitada": build("contrato-empreitada", empreitada as RawSchema),
+  "acordo-confidencialidade": build("acordo-confidencialidade", confidencialidade as RawSchema),
+  "termo-vistoria-imovel": build("termo-vistoria-imovel", vistoria as RawSchema),
+  "declaracao-quitacao": build("declaracao-quitacao", quitacao as RawSchema),
+  "declaracao-renda-autonomo": build("declaracao-renda-autonomo", rendaAutonomo as RawSchema),
 };
 
 export const DOC_IDS = Object.keys(DOCUMENT_SCHEMAS);

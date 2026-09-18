@@ -28,6 +28,13 @@ export const PRICES: Record<string, number> = {
   "declaracao-residencia": 5.0,
   "contrato-aluguel-simples": 9.9,
   "curriculo-profissional": 7.9,
+  "contrato-compra-venda-imovel": 9.9,
+  "contrato-prestacao-servicos": 7.9,
+  "contrato-empreitada": 9.9,
+  "acordo-confidencialidade": 7.9,
+  "termo-vistoria-imovel": 5.0,
+  "declaracao-quitacao": 5.0,
+  "declaracao-renda-autonomo": 5.0,
 };
 
 export function getPrice(id: string): number {
@@ -236,6 +243,44 @@ A garantia contratada é: ${fill(d.forma_garantia, "Sem garantia")}${d.valor_cau
 CLÁUSULA 6ª — DAS OBRIGAÇÕES
 O(A) LOCATÁRIO(A) obriga-se a usar o imóvel conforme a finalidade pactuada, conservá-lo e pagar pontualmente os encargos; o(A) LOCADOR(A) garante o uso pacífico do imóvel durante a locação.`,
 
+  "declaracao-renda-autonomo": (d) => `DECLARAÇÃO DE TRABALHO / RENDA — AUTÔNOMO(A)
+
+Eu, ${fill(d.prestador_nome)}, inscrito(a) no CPF sob nº ${fill(d.prestador_cpf)},${d.cnpj_mei ? ` titular do CNPJ/MEI nº ${d.cnpj_mei},` : ""} exerço a atividade de ${fill(d.profissao_atividade)} de forma autônoma, declaro para os devidos fins${d.finalidade ? ` (${d.finalidade.toLowerCase()})` : ""} que:
+
+1. Minha renda mensal média é de R$ ${brl(fill(d.renda_mensal_media))}, apurada no período de ${fill(d.periodo_referencia, "ativação recente")}.
+2. Atendo habitualmente os seguintes clientes/empregadores: ${fill(d.clientes_principais, "____________________________________________")}.
+3. Não mantenho vínculo empregatício formal com os contratantes, prestando serviços com autonomia técnica e financeira.
+
+DECLARAÇÃO SOB AS PENAS DA LEI
+Declaro estar ciente de que a falsidade desta declaração configura crime previsto no Art. 299 do Código Penal, sem prejuízo das sanções civis e administrativas cabíveis.
+
+Por ser expressão da verdade, firmo a presente declaração.`,
+
+  "declaracao-quitacao": (d) => `DECLARAÇÃO DE QUITAÇÃO DE DÉBITOS
+
+Eu, ${fill(d.credor_nome)}, inscrito(a) no CPF/CNPJ sob nº ${fill(d.credor_cpf_cnpj)}, DECLARO, para os devidos fins de direito, ter recebido de ${fill(d.devedor_nome)}, inscrito(a) no CPF/CNPJ sob nº ${fill(d.devedor_cpf_cnpj)}, a importância de R$ ${brl(fill(d.valor_quitado))}${d.forma_pagamento ? ` (${d.forma_pagamento})` : ""}, referente a ${fill(d.divida_descricao, LONG_BLANK)}.
+
+Declaro, assim, o débito total e definitivamente QUITADO, dando plena, geral e irrevogável quitação, nada mais tendo a reclamar, a qualquer título, presente ou futuro, em razão do objeto acima.
+
+A presente declaração é feita por ato voluntário, na presença das testemunhas abaixo (opcional), e produz efeitos legais a partir de sua assinatura.`,
+
+  "termo-vistoria-imovel": (d) => `TERMO DE VISTORIA DE IMÓVEL${d.tipo_vistoria ? ` — ${d.tipo_vistoria.toUpperCase()}` : ""}
+
+Realizei, na data indicada abaixo, vistoria${d.tipo_vistoria ? ` de ${d.tipo_vistoria.toLowerCase()}` : ""} no imóvel situado em ${fill(d.imovel_endereco, LONG_BLANK)}, com a presença de ${fill(d.locador_nome, "________________")} (Locador) e ${fill(d.locatario_nome, "________________")} (Locatário)${d.vistoriador_nome ? `, conduzida por ${d.vistoriador_nome}` : ""}.
+
+CHECKLIST DE CONSERVAÇÃO
+• Paredes / Pintura: ${fill(d.estado_paredes)}
+• Piso: ${fill(d.estado_piso)}
+• Instalação elétrica: ${fill(d.estado_eletrica)}
+• Instalação hidráulica: ${fill(d.estado_hidraulica)}
+• Móveis e equipamentos entregues: ${fill(d.moveis_equipamentos, LONG_BLANK)}
+• Chaves entregues: ${fill(d.chaves_entregues)}
+• Observações / avarias: ${fill(d.observacoes, LONG_BLANK)}
+
+As partes declaram que as informações acima refletem o estado real do imóvel no momento da vistoria, servindo como parâmetro comparativo para a vistoria de saída e para a devolução da caução, nos termos da Lei nº 8.245/91.
+
+${d.tipo_vistoria === "Saída" ? "Com a vistoria de saída, declaro ainda RECEBER AS CHAVES do imóvel, encerrando a posse direta pelo(a) locatário(a)." : "Ficam formalmente entregues as chaves descritas acima ao(à) locatário(a), que passa a deter a posse direta do imóvel."}`,
+
   "curriculo-profissional": (d) => {
     const skills = String(d.habilidades ?? "")
       .split(/[,;]/)
@@ -272,6 +317,95 @@ ${skills.map((s) => `• ${s}`).join("\n")}
 IDIOMAS
 ${d.idiomas ?? "Português — Nativo"}`;
   },
+
+  "contrato-compra-venda-imovel": (d) => `CONTRATO PARTICULAR DE COMPRA E VENDA DE IMÓVEL
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, as partes qualificadas abaixo celebram o presente Contrato de Compra e Venda de Imóvel, regido pelo Código Civil Brasileiro.
+
+CLÁUSULA 1ª — DAS PARTES
+VENDEDOR(A): ${fill(d.vendedor_nome)}, ${fill(d.vendedor_estado_civil, "estado civil ______________")}, CPF/CNPJ nº ${fill(d.vendedor_cpf_cnpj)}, residente em ${fill(d.vendedor_endereco, LONG_BLANK)}.
+COMPRADOR(A): ${fill(d.comprador_nome)}, ${fill(d.comprador_estado_civil, "estado civil ______________")}, CPF/CNPJ nº ${fill(d.comprador_cpf_cnpj)}, residente em ${fill(d.comprador_endereco, LONG_BLANK)}.
+
+CLÁUSULA 2ª — DO OBJETO
+O(A) VENDEDOR(A) vende ao(à) COMPRADOR(A), que declara aceitar, o imóvel urbano situado em ${fill(d.imovel_endereco, LONG_BLANK)}, inscrito na Matrícula nº ${fill(d.imovel_matricula)} do respectivo Registro de Imóveis, com área/descrição: ${fill(d.imovel_area, "a conferir por ocasião da escritura")}.
+
+CLÁUSULA 3ª — DO PREÇO E DA FORMA DE PAGAMENTO
+O preço total da venda é de R$ ${brl(fill(d.valor_venda))}, pago da seguinte forma: ${fill(d.forma_pagamento, "________________________________")}.
+
+CLÁUSULA 4ª — DA ENTREGA
+A entrega das chaves e da posse do imóvel ocorrerá em ${fill(d.data_entrega_chaves)}, acompanhada dos documentos de propriedade e comprovantes de quitação de tributos e condomínio.
+
+CLÁUSULA 5ª — DAS GARANTIAS
+O(A) VENDEDOR(A) declara que o imóvel está livre de ônus, hipotecas, ações e dívidas, respondendo civilmente por eventuais informações inverídicas. A escritura definitiva será lavrada em cartório, correndo as despesas conforme acordo entre as partes.
+
+Parágrafo único: ficam as partes cientes de que o presente contrato obriga exclusivamente as partes signatárias, nos termos do Código Civil Brasileiro.`,
+
+  "contrato-prestacao-servicos": (d) => `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, as partes celebram o presente Contrato de Prestação de Serviços, regido pelos Arts. 593 a 609 do Código Civil.
+
+CLÁUSULA 1ª — DAS PARTES
+PRESTADOR(A): ${fill(d.prestador_nome)}, CPF/CNPJ nº ${fill(d.prestador_cpf_cnpj)}, residente em ${fill(d.prestador_endereco, LONG_BLANK)}.
+CONTRATANTE: ${fill(d.contratante_nome)}, CPF/CNPJ nº ${fill(d.contratante_cpf_cnpj)}, residente em ${fill(d.contratante_endereco, LONG_BLANK)}.
+
+CLÁUSULA 2ª — DO OBJETO E DO ESCOPO
+O(A) PRESTADOR(A) obriga-se a executar, com autonomia técnica e sem subordinação, os seguintes serviços: ${fill(d.servico_descricao, LONG_BLANK)}
+Local de execução: ${fill(d.local_execucao, "a combinar entre as partes")}.
+
+CLÁUSULA 3ª — DA REMUNERAÇÃO
+pelos serviços descritos, o(A) CONTRATANTE pagará R$ ${brl(fill(d.valor_total))}, conforme a forma combinada: ${fill(d.forma_pagamento, "a definir entre as partes")}. A ausência de pagamento na data pactuada sujeita o valor à correção e multa legal.
+
+CLÁUSULA 4ª — DO PRAZO
+A execução deverá ser concluída no prazo de ${fill(d.prazo_entrega, "____ dias corridos")}, contados da assinatura, prorrogável por acordo escrito entre as partes.
+
+CLÁUSULA 5ª — DAS OBRIGAÇÕES
+O(A) PRESTADOR(A) responde pela qualidade e pela confidencialidade das informações acessadas; o(A) CONTRATANTE fornecerá as informações e o acesso necessários à execução. Este contrato não gera vínculo empregatício (Art. 594, CC).`,
+
+  "contrato-empreitada": (d) => `CONTRATO DE EMPREITADA (OBRA / REFORMA)
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, as partes celebram o presente Contrato de Empreitada por preço certo, regido pelos Arts. 610 a 620 do Código Civil.
+
+CLÁUSULA 1ª — DAS PARTES
+EMPREITEIRO(A): ${fill(d.empreiteiro_nome)}, CPF/CNPJ nº ${fill(d.empreiteiro_cpf_cnpj)}.
+CONTRATANTE (PROPRIETÁRIO): ${fill(d.contratante_nome)}, CPF/CNPJ nº ${fill(d.contratante_cpf_cnpj)}.
+
+CLÁUSULA 2ª — DO OBJETO
+O(A) EMPREITEIRO(A) executará, por sua conta e risco, com material e mão de obra, a obra/reforma no imóvel situado em ${fill(d.obra_endereco, LONG_BLANK)}, compreendendo: ${fill(d.obra_descricao, LONG_BLANK)}
+
+CLÁUSULA 3ª — DO PREÇO E DAS MEDIÇÕES
+O preço global da empreitada é de R$ ${brl(fill(d.valor_global))}, pago conforme: ${fill(d.forma_pagamento, "medições a combinar")}. O pagamento de cada medição estará condicionado à conferência da etapa executada pelo(A) CONTRATANTE.
+
+CLÁUSULA 4ª — DO PRAZO E DO INÍCIO
+O início dos serviços ocorrerá em ${fill(d.data_inicio)}, com execução no prazo de ${fill(d.prazo_dias, "____ dias corridos")}. Atrasos imputáveis ao(A) EMPREITEIRO(A) sujeitam-no às penalidades da Cláusula 6ª.
+
+CLÁUSULA 5ª — DA GARANTIA
+O(A) EMPREITEIRO(A) garante a solidez e segurança da obra pelo prazo legal de 5 anos (Art. 618, CC), respondendo ainda pela conservação dos materiais entregues.
+
+CLÁUSULA 6ª — DAS PENALIDADES E RESCISÃO
+Atrazo injustificado sujeita o(A) EMPREITEIRO(A) a multa de 2% sobre o valor global por mês de atraso, além de perdas e danos. A rescisão unilateral sem culpa não dará direito a indenização por lucros cessantes (Art. 612, CC).`,
+
+  "acordo-confidencialidade": (d) => `ACORDO DE CONFIDENCIALIDADE (NDA — NON-DISCLOSURE AGREEMENT)
+
+Aos ${fill(d.data_assinatura)}, na cidade de ${fill(d.cidade)}, as partes celebram o presente Acordo de Confidencialidade, regido pelo Código Civil e pela Lei nº 9.279/96.
+
+CLÁUSULA 1ª — DAS PARTES
+PARTE REVELADORA: ${fill(d.parte_reveladora)}, inscrito(a) no CPF/CNPJ sob nº ${fill(d.parte_reveladora_doc)}.
+PARTE RECEPTORA: ${fill(d.parte_receptora)}, inscrito(a) no CPF/CNPJ sob nº ${fill(d.parte_receptora_doc)}.
+
+CLÁUSULA 2ª — DO OBJETO E DA FINALIDADE
+Considera-se informação confidencial toda informação técnica, comercial, financeira ou de outra natureza relacionada a ${fill(d.objeto_confidencialidade, LONG_BLANK)}, compartilhada para a finalidade de ${fill(d.finalidade_uso, "avaliação entre as partes")}.
+
+CLÁUSULA 3ª — DAS OBRIGAÇÕES DA PARTE RECEPTORA
+A PARTE RECEPTORA compromete-se a: (i) manter sigilo absoluto sobre as Informações; (ii) utilizá-las exclusivamente para a finalidade acima; (iii) restringir o acesso a colaboradores sob igual dever; (iv) devolver ou destruir todo material quando solicitado.
+
+CLÁUSULA 4ª — DAS EXCEÇÕES
+Não se considera confidencial a informação que: seja de domínio público; já fosse lícitamente detida anteriormente; seja desenvolvida de forma independente; ou sua divulgação seja exigida por lei ou ordem judicial.
+
+CLÁUSULA 5ª — DO PRAZO E DA MULTA
+O dever de sigilo permanece por ${fill(d.prazo_anos, "____ anos")} contados da assinatura. O descumprimento sujeita a parte infratora à multa não compensatória de R$ ${brl(fill(d.multa_valor, "valor a arbitrar judicialmente"))}, sem prejuízo de perdas e danos.
+
+CLÁUSULA 6ª — DO FORO
+Fica eleito o foro da comarca de ${fill(d.foro_cidade, "________________")}, para dirimir controvérsias decorrentes deste acordo.`,
 };
 
 // ─── Geração ──────────────────────────────────────────────────────────
@@ -289,6 +423,20 @@ function signersFor(id: string, d: Record<string, string>): string[] {
       return [`${d.declarante_nome ?? "Declarante"} — Declarante`];
     case "curriculo-profissional":
       return [`${d.nome_completo ?? "Candidato(a)"} — Assinatura digital`];
+    case "contrato-compra-venda-imovel":
+      return [`${d.vendedor_nome ?? "Vendedor(a)"} — Vendedor(a)`, `${d.comprador_nome ?? "Comprador(a)"} — Comprador(a)`];
+    case "contrato-prestacao-servicos":
+      return [`${d.prestador_nome ?? "Prestador(a)"} — Prestador(a)`, `${d.contratante_nome ?? "Contratante"} — Contratante`];
+    case "contrato-empreitada":
+      return [`${d.empreiteiro_nome ?? "Empreiteiro(a)"} — Empreiteiro(a)`, `${d.contratante_nome ?? "Contratante"} — Contratante`];
+    case "acordo-confidencialidade":
+      return [`${d.parte_reveladora ?? "Parte Reveladora"} — Reveladora`, `${d.parte_receptora ?? "Parte Receptora"} — Receptora`];
+    case "termo-vistoria-imovel":
+      return [`${d.locador_nome ?? "Locador(a)"} — Locador(a)`, `${d.locatario_nome ?? "Locatário(a)"} — Locatário(a)`];
+    case "declaracao-quitacao":
+      return [`${d.credor_nome ?? "Credor(a)"} — Credor(a)`, `${d.devedor_nome ?? "Devedor(a)"} — Devedor(a)`];
+    case "declaracao-renda-autonomo":
+      return [`${d.prestador_nome ?? "Declarante"} — Declarante`];
     default:
       return ["Assinatura do(a) declarante"];
   }

@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "contrato-prestacao-servicos",
+  "title": "Contrato de Prestação de Serviços",
+  "description": "Contrato para autônomos e freelancers, com escopo, prazos, valores e condições de pagamento (Lei nº 10.406/2002 — Código Civil).",
+  "type": "object",
+  "properties": {
+    "prestador_nome": { "type": "string", "title": "Nome do Prestador(a) de Serviços" },
+    "prestador_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Prestador(a)", "placeholder": "000.000.000-00" },
+    "prestador_endereco": { "type": "string", "title": "Endereço do Prestador(a)" },
+    "contratante_nome": { "type": "string", "title": "Nome do(a) Contratante" },
+    "contratante_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do(a) Contratante", "placeholder": "000.000.000-00" },
+    "contratante_endereco": { "type": "string", "title": "Endereço do(a) Contratante" },
+    "servico_descricao": { "type": "string", "title": "Descrição do Serviço (escopo)" },
+    "local_execucao": { "type": "string", "title": "Local de Execução", "placeholder": "Remoto / Endereço" },
+    "valor_total": { "type": "string", "title": "Valor Total (R$)", "placeholder": "2.500,00" },
+    "forma_pagamento": { "type": "string", "title": "Forma de Pagamento", "placeholder": "50% na assinatura + 50% na entrega" },
+    "prazo_entrega": { "type": "string", "title": "Prazo de Entrega", "placeholder": "30 dias corridos" },
+    "data_assinatura": { "type": "string", "title": "Data de Assinatura", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

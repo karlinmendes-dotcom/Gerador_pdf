@@ -12,7 +12,16 @@ interface AuthState {
   user: SessionUser | null;
   signIn: (email: string, password: string) => Promise<SessionUser>;
   signUp: (name: string, email: string, password: string) => Promise<SessionUser>;
+  /** Login social: credential é o ID token emitido pelo botão do Google. */
+  googleSignIn: (credential: string) => Promise<SessionUser>;
   signOut: () => void;
+}
+
+/** Dispara a migração dos dados de visitante para a conta autenticada. */
+function adoptLocalData(userId: string, email: string) {
+  const store = useStore.getState();
+  store.syncUser(userId, email);
+  void store.linkLocalDataToUser(userId).then(() => store.hydrateFromConvex(userId));
 }
 
 const SESSION_KEY = "pdfforge:session";
@@ -111,8 +120,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
       const user: SessionUser = { id: convex.userId, email: normalized, name: normalized.split("@")[0], provider: "convex" };
       saveSession(user);
       set({ user });
-      useStore.getState().syncUser(user.id, user.email);
-      void useStore.getState().hydrateFromConvex(user.id);
+      adoptLocalData(user.id, user.email);
       return user;
     }
 
@@ -125,8 +133,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
     const user: SessionUser = { id: found.id, email: found.email, name: found.name, provider: "local" };
     saveSession(user);
     set({ user });
-    useStore.getState().syncUser(user.id, user.email);
-    void useStore.getState().hydrateFromConvex(user.id);
+    adoptLocalData(user.id, user.email);
     return user;
   },
 
@@ -147,8 +154,7 @@ export const useAuth = create<AuthState>((set, _get) => ({
       const user: SessionUser = { id: convex.userId, email: normalized, name: trimmedName, provider: "convex" };
       saveSession(user);
       set({ user });
-      useStore.getState().syncUser(user.id, user.email);
-      void useStore.getState().hydrateFromConvex(user.id);
+      adoptLocalData(user.id, user.email);
       return user;
     }
 
@@ -167,9 +173,39 @@ export const useAuth = create<AuthState>((set, _get) => ({
     const user: SessionUser = { id: created.id, email: created.email, name: created.name, provider: "local" };
     saveSession(user);
     set({ user });
-    useStore.getState().syncUser(user.id, user.email);
-    void useStore.getState().hydrateFromConvex(user.id);
+    adoptLocalData(user.id, user.email);
     return user;
+  },
+
+  googleSignIn: async (credential) => {
+    if (!CONVEX_URL) throw new Error("Backend não conectado — use o login por e-mail.");
+    try {
+      const res = await fetch(`${CONVEX_URL}/api/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: "auth:googleSignIn", args: { credential } }),
+      });
+      const body = (await res.json()) as {
+        status?: string;
+        value?: { userId: string; email: string; name: string };
+        errorMessage?: string;
+      };
+      if (body.status !== "success" || !body.value) {
+        throw new Error(body.errorMessage ?? "Falha no login com Google.");
+      }
+      const user: SessionUser = {
+        id: body.value.userId,
+        email: body.value.email,
+        name: body.value.name || body.value.email.split("@")[0],
+        provider: "convex",
+      };
+      saveSession(user);
+      set({ user });
+      adoptLocalData(user.id, user.email);
+      return user;
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Falha no login com Google.");
+    }
   },
 
   signOut: () => {

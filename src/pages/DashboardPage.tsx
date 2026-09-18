@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, type TargetAndTransition, type Transition } from "framer-motion";
 import { useStore, type Document } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { DOC_TYPES, getDocType, getPrice, downloadPdf } from "@/lib/pdf-engine";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -334,7 +335,7 @@ export default function DashboardPage() {
   ] as const;
 
   const sidebar = (
-    <aside className="flex h-full w-64 flex-col bg-[#0B1F3F] text-blue-50">
+    <aside className="flex h-full w-64 flex-col bg-[#0066FF] text-blue-50">
       <div className="border-b border-white/10 px-5 py-4">
         <button type="button" onClick={() => nav("/")} aria-label="Início" className="flex items-center gap-2.5">
           <LogoMark size={34} />
@@ -359,13 +360,13 @@ export default function DashboardPage() {
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
               view === item.id
-                ? "bg-blue-600 text-white shadow-md shadow-blue-950/40"
-                : "text-blue-100/70 hover:bg-white/5 hover:text-white"
+                ? "bg-white text-blue-700 shadow-md shadow-blue-950/30"
+                : "text-blue-100/85 hover:bg-white/10 hover:text-white"
             )}
           >
-            <item.icon className={cn("h-4 w-4", view === item.id ? "text-white" : "text-blue-200/60")} />
+            <item.icon className={cn("h-4 w-4", view === item.id ? "text-blue-600" : "text-blue-100/70")} />
             {item.label}
-            {view === item.id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-300" />}
+            {view === item.id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-600" />}
           </button>
         ))}
       </nav>
@@ -494,12 +495,30 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-sm font-semibold text-slate-900">Você está no modo visitante</p>
                         <p className="text-xs text-slate-600">
-                          Navegue livremente — os rascunhos ficam salvos neste dispositivo. Entre para sincronizar na sua conta.
+                          Navegue livremente — os rascunhos ficam salvos neste dispositivo. Conecte sua conta para acessar de qualquer lugar.
                         </p>
                       </div>
-                      <Button size="sm" onClick={() => { setAuthReason("Entre para salvar seus documentos na conta."); setAuthOpen(true); }}>
-                        Criar conta grátis
-                      </Button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {GOOGLE_CLIENT_ID && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-slate-300 bg-white"
+                            onClick={() => { setAuthReason("Conecte sua conta Google para salvar tudo na nuvem."); setAuthOpen(true); }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 48 48" aria-hidden>
+                              <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 5.9 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z" />
+                              <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 5.9 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+                              <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+                              <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z" />
+                            </svg>
+                            Google
+                          </Button>
+                        )}
+                        <Button size="sm" onClick={() => { setAuthReason("Entre para salvar seus documentos na conta."); setAuthOpen(true); }}>
+                          {GOOGLE_CLIENT_ID ? "E-mail" : "Criar conta grátis"}
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 )}

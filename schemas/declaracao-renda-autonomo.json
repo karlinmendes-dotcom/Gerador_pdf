@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "declaracao-renda-autonomo",
+  "title": "Declaração de Trabalho / Renda (Autônomos)",
+  "description": "Declaração de atividade e renda média para autônomos, freelancers e MEIs — aceita em locações, financiamentos e empréstimos.",
+  "type": "object",
+  "properties": {
+    "prestador_nome": { "type": "string", "title": "Nome Completo do Autônomo(a)" },
+    "prestador_cpf": { "type": "string", "title": "CPF", "placeholder": "000.000.000-00" },
+    "profissao_atividade": { "type": "string", "title": "Profissão / Atividade", "placeholder": "Ex.: eletricista autônomo (MEI)" },
+    "cnpj_mei": { "type": "string", "title": "CNPJ / Registro MEI (se houver)", "placeholder": "00.000.000/0001-00" },
+    "renda_mensal_media": { "type": "string", "title": "Renda Mensal Média (R$)", "placeholder": "4.500,00" },
+    "periodo_referencia": { "type": "string", "title": "Período de Referência", "placeholder": "Ex.: últimos 6 meses" },
+    "clientes_principais": { "type": "string", "title": "Principais Clientes / Empregadores" },
+    "finalidade": { "type": "string", "title": "Finalidade da Declaração", "enum": ["Locação de imóvel", "Financiamento imobiliário", "Empréstimo bancário", "Contrato escolar", "Outra"] },
+    "cidade": { "type": "string", "title": "Cidade" },
+    "data": { "type": "string", "title": "Data", "placeholder": "DD/MM/AAAA" }
+  }
+}

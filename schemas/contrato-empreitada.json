@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "contrato-empreitada",
+  "title": "Contrato de Empreitada (Obras e Reformas)",
+  "description": "Contrato de empreitada por preço certo para obras civis e reformas, com medições, prazos e garantia legal (Arts. 610 a 620 do Código Civil).",
+  "type": "object",
+  "properties": {
+    "empreiteiro_nome": { "type": "string", "title": "Nome do Empreiteiro / Empresa" },
+    "empreiteiro_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Empreiteiro", "placeholder": "000.000.000-00" },
+    "contratante_nome": { "type": "string", "title": "Nome do(a) Contratante (Proprietário)" },
+    "contratante_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do(a) Contratante", "placeholder": "000.000.000-00" },
+    "obra_endereco": { "type": "string", "title": "Endereço da Obra/Reforma" },
+    "obra_descricao": { "type": "string", "title": "Descrição da Obra/Serviços", "placeholder": "Ex.: pintura completa, elétrica e hidráulica" },
+    "valor_global": { "type": "string", "title": "Valor Global (R$)", "placeholder": "18.000,00" },
+    "forma_pagamento": { "type": "string", "title": "Forma de Pagamento / Medições", "placeholder": "Medições semanais conforme progresso" },
+    "prazo_dias": { "type": "string", "title": "Prazo de Execução", "placeholder": "Ex.: 60 dias corridos" },
+    "data_inicio": { "type": "string", "title": "Data de Início", "placeholder": "DD/MM/AAAA" },
+    "garantia_obra": { "type": "string", "title": "Garantia da Obra", "placeholder": "Ex.: 5 anos — solidez e segurança (Art. 618 CC)" },
+    "data_assinatura": { "type": "string", "title": "Data de Assinatura", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

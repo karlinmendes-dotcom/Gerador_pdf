@@ -36,6 +36,37 @@ export const create = mutation({
   },
 });
 
+/** Cria todas as parcelas de um contrato em uma única mutation. */
+export const createBatch = mutation({
+  args: {
+    userId: v.id("users"),
+    documentId: v.id("documents"),
+    receipts: v.array(
+      v.object({
+        installmentNumber: v.number(),
+        amount: v.number(),
+        dueDate: v.string(),
+        status: v.union(v.literal("pending"), v.literal("paid"), v.literal("overdue")),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const ids = [];
+    for (const r of args.receipts) {
+      const id = await ctx.db.insert("receipts", {
+        documentId: args.documentId,
+        userId: args.userId,
+        ...r,
+        createdAt: now,
+        updatedAt: now,
+      });
+      ids.push(id);
+    }
+    return ids;
+  },
+});
+
 export const update = mutation({
   args: {
     id: v.id("receipts"),

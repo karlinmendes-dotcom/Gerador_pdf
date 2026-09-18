@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "declaracao-quitacao",
+  "title": "Declaração de Quitação de Débitos",
+  "description": "Declaração formal de quitação total de dívida ou obrigação, dando plena e geral liberação ao devedor.",
+  "type": "object",
+  "properties": {
+    "credor_nome": { "type": "string", "title": "Nome do Credor(a) (declara a quitação)" },
+    "credor_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Credor(a)", "placeholder": "000.000.000-00" },
+    "devedor_nome": { "type": "string", "title": "Nome do Devedor(a) (declarado quite)" },
+    "devedor_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Devedor(a)", "placeholder": "000.000.000-00" },
+    "divida_descricao": { "type": "string", "title": "Descrição da Dívida/Obrigação", "placeholder": "Ex.: aluguéis de jan/2026 a ago/2026 do imóvel..." },
+    "valor_quitado": { "type": "string", "title": "Valor Total Quitado (R$)", "placeholder": "12.000,00" },
+    "forma_pagamento": { "type": "string", "title": "Forma de Pagamento", "placeholder": "PIX / Transferência / Dinheiro" },
+    "cidade": { "type": "string", "title": "Cidade" },
+    "data": { "type": "string", "title": "Data", "placeholder": "DD/MM/AAAA" }
+  }
+}

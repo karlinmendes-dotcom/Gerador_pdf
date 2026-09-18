@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useStore, type Receipt } from "@/lib/store";
-import { Check, Clock, AlertCircle, Upload } from "lucide-react";
+import { CONVEX_URL } from "@/lib/env";
+import { Check, Clock, AlertCircle, Upload, Paperclip } from "lucide-react";
 
 interface ReceiptBookProps {
   documentId: string;
@@ -41,14 +42,46 @@ export function ReceiptBook({ documentId }: ReceiptBookProps) {
       const file = input.files?.[0];
       if (!file) return;
       setUploadingId(receipt._id);
-      // Produção: enviar para o Convex Storage e guardar o storageId.
-      await new Promise((r) => setTimeout(r, 600));
-      updateReceipt(receipt._id, {
-        status: "paid",
-        paidDate: new Date().toLocaleDateString("pt-BR"),
-        receiptFileId: `local_${receipt.installmentNumber}_${file.name}`,
-      });
-      setUploadingId(null);
+      try {
+        let fileId: string;
+        if (CONVEX_URL && receipt._id.length > 10 && file.size <= 4 * 1024 * 1024) {
+          // Upload real ao Convex Storage: uploadUrl → POST → storageId.
+          const upRes = await fetch(`${CONVEX_URL}/api/mutation`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: "galleries:requestUploadUrl", args: {} }),
+          });
+          const upBody = (await upRes.json()) as { status?: string; value?: string };
+          const uploadUrl = upBody.status === "success" ? String(upBody.value ?? "") : "";
+          if (!uploadUrl) throw new Error("uploadUrl indisponível");
+          const post = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type || "image/png" },
+            body: file,
+          });
+          if (!post.ok) throw new Error(`Upload falhou (${post.status})`);
+          const stored = (await post.json()) as { storageId?: string };
+          fileId = String(stored.storageId ?? "");
+          if (!fileId) throw new Error("storageId ausente");
+        } else {
+          // Modo local (visitante/sem backend) ou arquivo grande: referência local.
+          fileId = `local_${receipt.installmentNumber}_${file.name}`;
+        }
+        updateReceipt(receipt._id, {
+          status: "paid",
+          paidDate: new Date().toLocaleDateString("pt-BR"),
+          receiptFileId: fileId,
+        });
+      } catch {
+        // Fallback: a parcela continua funcional em modo local.
+        updateReceipt(receipt._id, {
+          status: "paid",
+          paidDate: new Date().toLocaleDateString("pt-BR"),
+          receiptFileId: `local_${receipt.installmentNumber}_${file.name}`,
+        });
+      } finally {
+        setUploadingId(null);
+      }
     };
     input.click();
   };
@@ -135,7 +168,12 @@ export function ReceiptBook({ documentId }: ReceiptBookProps) {
                 </Button>
               )}
               {receipt.status === "paid" && receipt.receiptFileId && (
-                <span className="text-xs text-emerald-400" title={receipt.receiptFileId}>📎</span>
+                <span
+                  className={`flex h-4 w-4 items-center justify-center ${receipt.receiptFileId.startsWith("local_") ? "text-slate-400" : "text-emerald-500"}`}
+                  title={receipt.receiptFileId.startsWith("local_") ? "Comprovante salvo neste dispositivo" : "Comprovante no Convex Storage"}
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                </span>
               )}
             </div>
           </motion.div>

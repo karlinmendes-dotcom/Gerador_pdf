@@ -64,6 +64,46 @@ export const getOrCreate = mutation({
   },
 });
 
+/**
+ * Client ID público do Google OAuth (Convex Dashboard → GOOGLE_CLIENT_ID).
+ * Valor público por natureza — exposto ao frontend para renderizar o botão.
+ * Sem a variável cadastrada, retorna null e o frontend oculta o botão.
+ */
+export const googleClientId = query({
+  args: {},
+  handler: async () => ({ clientId: process.env.GOOGLE_CLIENT_ID ?? null }),
+});
+
+/** Cria ou vincula a conta Google pelo e-mail (login social). */
+export const googleUpsert = mutation({
+  args: { externalId: v.string(), email: v.string(), name: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+
+    // 1) Já existe conta Google (login recorrente)
+    const googleAccount = await ctx.db
+      .query("users")
+      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
+      .first();
+    if (googleAccount) return googleAccount._id;
+
+    // 2) E-mail já cadastrado via senha → vincula o Google à mesma conta
+    const byEmail = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+    if (byEmail) return byEmail._id;
+
+    // 3) Primeira entrada via Google
+    return ctx.db.insert("users", {
+      externalId: args.externalId,
+      email,
+      name: args.name,
+      createdAt: Date.now(),
+    });
+  },
+});
+
 /** Cadastro (freemium). Retorna o userId para o cliente salvar na sessão. */
 export const signUp = mutation({
   args: { email: v.string(), name: v.string(), password: v.string() },

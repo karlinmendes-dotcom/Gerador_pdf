@@ -41,6 +41,8 @@ interface StoreState {
   syncUser: (id: string, email: string) => void;
   /** Carrega documentos/recibos reais do Convex para o usuário logado. */
   hydrateFromConvex: (userId: string) => Promise<void>;
+  /** Envia documentos/recibos criados como visitante para a conta recém-logada. */
+  linkLocalDataToUser: (userId: string) => Promise<void>;
   addDocument: (doc: Omit<Document, "_id" | "createdAt" | "updatedAt">) => Document;
   updateDocument: (id: string, updates: Partial<Document>) => void;
   removeDocument: (id: string) => void;
@@ -138,6 +140,57 @@ export const useStore = create<StoreState>((set, get) => ({
   offline: false,
 
   syncUser: (id, _email) => set({ userId: id }),
+
+  /**
+   * Migra os rascunhos criados no modo visitante para a conta recém-autenticada:
+   * reatribui o userId localmente e reenvia documentos + parcelas ao Convex
+   * (os IDs locais são substituídos pelos IDs reais do banco). Falhas são
+   * silenciosas — o estado local continua válidas offline.
+   */
+  linkLocalDataToUser: async (userId: string) => {
+    const { documents } = get();
+    const orphans = documents.filter((d) => d.userId !== userId);
+    if (orphans.length === 0) return;
+
+    const idMap = new Map<string, string>();
+    for (const doc of orphans) {
+      const res = await convexSync("documents", "create", {
+        userId,
+        documentType: doc.documentType,
+        title: doc.title,
+        dataJson: doc.dataJson,
+        status: doc.status,
+      });
+      const remoteId = typeof res?.value === "string" && res.value.length > 10 ? (res.value as string) : doc._id;
+      idMap.set(doc._id, remoteId);
+    }
+
+    set((s) => ({
+      documents: s.documents.map((d) => {
+        if (d.userId === userId) return d;
+        return { ...d, userId, _id: idMap.get(d._id) ?? d._id };
+      }),
+      receipts: s.receipts.map((r) => ({ ...r, documentId: idMap.get(r.documentId) ?? r.documentId })),
+    }));
+
+    // Envia as parcelas dos documentos migrados (agora com IDs válidos no banco).
+    const migratedReceipts = get().receipts.filter(
+      (r) => orphans.some((o) => idMap.get(o._id) === r.documentId) && r.documentId.length > 10
+    );
+    for (const r of migratedReceipts) {
+      await convexSync("receipts", "create", {
+        userId,
+        documentId: r.documentId,
+        installmentNumber: r.installmentNumber,
+        amount: r.amount,
+        dueDate: r.dueDate,
+        status: r.status,
+      });
+    }
+
+    save("pdfforge:documents", get().documents);
+    save("pdfforge:receipts", get().receipts);
+  },
 
   /**
    * Hidrata documentos e recibos reais do Convex para o usuário autenticado.
@@ -243,13 +296,20 @@ export const useStore = create<StoreState>((set, get) => ({
       save("pdfforge:receipts", receipts);
       return { receipts };
     });
-    for (const r of created) {
-      void convexSync("receipts", "create", {
-        documentId: r.documentId,
-        installmentNumber: r.installmentNumber,
-        amount: r.amount,
-        dueDate: r.dueDate,
-        status: r.status,
+    // Persistência real no Convex: exige userId + documentId válidos (IDs do
+    // banco). Chunks de 32 para não estourar o payload da função.
+    const userId = get().userId;
+    const valid = created.filter((r) => userId !== LOCAL_USER && r.documentId.length > 10);
+    for (let i = 0; i < valid.length; i += 32) {
+      void convexSync("receipts", "createBatch", {
+        userId,
+        documentId: valid[i].documentId,
+        receipts: valid.slice(i, i + 32).map((r) => ({
+          installmentNumber: r.installmentNumber,
+          amount: r.amount,
+          dueDate: r.dueDate,
+          status: r.status,
+        })),
       });
     }
   },

@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "termo-vistoria-imovel",
+  "title": "Termo de Vistoria de Imóvel e Entrega de Chaves",
+  "description": "Laudo de vistoria de entrada/saída com checklist de conservação e termo de entrega de chaves — essencial para locações.",
+  "type": "object",
+  "properties": {
+    "tipo_vistoria": { "type": "string", "title": "Tipo de Vistoria", "enum": ["Entrada", "Saída"] },
+    "locador_nome": { "type": "string", "title": "Nome do Locador(a) / Proprietário" },
+    "locatario_nome": { "type": "string", "title": "Nome do Locatário(a) / Inquilino" },
+    "vistoriador_nome": { "type": "string", "title": "Responsável pela Vistoria", "placeholder": "Se realizada por terceiro" },
+    "imovel_endereco": { "type": "string", "title": "Endereço do Imóvel" },
+    "estado_paredes": { "type": "string", "title": "Estado das Paredes/Pintura", "placeholder": "Bom / Regular / Com avarias" },
+    "estado_piso": { "type": "string", "title": "Estado do Piso", "placeholder": "Bom / Regular / Com avarias" },
+    "estado_eletrica": { "type": "string", "title": "Instalação Elétrica", "placeholder": "Funcional / Pendências" },
+    "estado_hidraulica": { "type": "string", "title": "Instalação Hidráulica", "placeholder": "Sem vazamentos / Pendências" },
+    "moveis_equipamentos": { "type": "string", "title": "Móveis e Equipamentos Entregues", "placeholder": "Ex.: 1 fogão, 1 geladeira, 2 ventiladores" },
+    "chaves_entregues": { "type": "string", "title": "Chaves Entregues", "placeholder": "Ex.: 2 portas social, 1 portão, 1 caixa d'água" },
+    "observacoes": { "type": "string", "title": "Observações / Avarias" },
+    "data_vistoria": { "type": "string", "title": "Data da Vistoria", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

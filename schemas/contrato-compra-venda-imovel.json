@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "contrato-compra-venda-imovel",
+  "title": "Contrato de Compra e Venda de Imóveis",
+  "description": "Contrato particular de compra e venda de imóvel urbano, com cláusulas de preço, matrícula, entrega e garantias.",
+  "type": "object",
+  "properties": {
+    "vendedor_nome": { "type": "string", "title": "Nome do Vendedor(a)" },
+    "vendedor_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Vendedor(a)", "placeholder": "000.000.000-00" },
+    "vendedor_estado_civil": { "type": "string", "title": "Estado Civil do Vendedor(a)", "placeholder": "Solteiro(a), Casado(a)..." },
+    "vendedor_endereco": { "type": "string", "title": "Endereço do Vendedor(a)" },
+    "comprador_nome": { "type": "string", "title": "Nome do Comprador(a)" },
+    "comprador_cpf_cnpj": { "type": "string", "title": "CPF/CNPJ do Comprador(a)", "placeholder": "000.000.000-00" },
+    "comprador_estado_civil": { "type": "string", "title": "Estado Civil do Comprador(a)", "placeholder": "Solteiro(a), Casado(a)..." },
+    "comprador_endereco": { "type": "string", "title": "Endereço do Comprador(a)" },
+    "imovel_endereco": { "type": "string", "title": "Endereço completo do Imóvel" },
+    "imovel_matricula": { "type": "string", "title": "Matrícula do Imóvel", "placeholder": "Ex.: 12345 do CRI de São Paulo" },
+    "imovel_area": { "type": "string", "title": "Área / Descrição", "placeholder": "Ex.: 72m², 2 quartos" },
+    "valor_venda": { "type": "string", "title": "Valor da Venda (R$)", "placeholder": "350.000,00" },
+    "forma_pagamento": { "type": "string", "title": "Forma de Pagamento", "placeholder": "À vista / Financiamento / Parcelado" },
+    "data_entrega_chaves": { "type": "string", "title": "Data de Entrega das Chaves", "placeholder": "DD/MM/AAAA" },
+    "data_assinatura": { "type": "string", "title": "Data de Assinatura", "placeholder": "DD/MM/AAAA" },
+    "cidade": { "type": "string", "title": "Cidade" }
+  }
+}

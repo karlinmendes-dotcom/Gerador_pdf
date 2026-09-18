@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
+import { api } from "./_generated/api";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
@@ -105,6 +106,57 @@ export const verifySessionToken = action({
     } catch {
       return { valid: false as const, reason: "bad_payload" };
     }
+  },
+});
+
+// ─── Login com Google (OAuth ID token) ──────────────────────────────
+
+interface GoogleTokenInfo {
+  aud?: string;
+  iss?: string;
+  sub?: string;
+  email?: string;
+  email_verified?: string | boolean;
+  name?: string;
+  exp?: string;
+}
+
+/**
+ * Verifica o ID token do Google server-side (tokeninfo), valida aud/iss/exp
+ * e cria ou vincula a conta pelo e-mail. Retorna os dados da sessão.
+ */
+export const googleSignIn = action({
+  args: { credential: v.string() },
+  handler: async (ctx, args) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error("GOOGLE_CLIENT_ID não configurada no Convex Dashboard (Deployment Settings → Environment Variables).");
+    }
+
+    const res = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(args.credential)}`
+    );
+    if (!res.ok) throw new Error("Token do Google inválido.");
+    const info = (await res.json()) as GoogleTokenInfo;
+
+    if (info.aud !== clientId) throw new Error("Token emitido para outro aplicativo.");
+    if (info.iss !== "accounts.google.com" && info.iss !== "https://accounts.google.com") {
+      throw new Error("Emissor do token inválido.");
+    }
+    if (info.email_verified !== "true" && info.email_verified !== true) {
+      throw new Error("O e-mail da conta Google não está verificado.");
+    }
+    if (!info.sub || !info.email) throw new Error("Token incompleto.");
+    if (Number(info.exp) * 1000 < Date.now()) throw new Error("Token expirado.");
+
+    const email = info.email.trim().toLowerCase();
+    const userId = await ctx.runMutation(api.users.googleUpsert, {
+      externalId: `google_${info.sub}`,
+      email,
+      name: info.name,
+    });
+
+    return { userId, email, name: info.name ?? email.split("@")[0] };
   },
 });
 

@@ -5,6 +5,13 @@ import {
   KeyRound,
   Briefcase,
   FileText,
+  Building2,
+  Hammer,
+  HardHat,
+  Lock,
+  SearchCheck,
+  BadgeCheck,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +26,13 @@ const DOC_ICONS: Record<string, LucideIcon> = {
   "declaracao-residencia": Home,
   "contrato-aluguel-simples": KeyRound,
   "curriculo-profissional": Briefcase,
+  "contrato-compra-venda-imovel": Building2,
+  "contrato-prestacao-servicos": Hammer,
+  "contrato-empreitada": HardHat,
+  "acordo-confidencialidade": Lock,
+  "termo-vistoria-imovel": SearchCheck,
+  "declaracao-quitacao": BadgeCheck,
+  "declaracao-renda-autonomo": TrendingUp,
 };
 
 /** Resolve o ícone Lucide do tipo de documento (fallback: FileText). */
